@@ -1,0 +1,48 @@
+# PerfectOCR/config/semantic_keywords.yaml
+
+descriptivo:
+  - Descripción
+  - Description
+  - Concepto
+  - Producto
+  - Artículo
+  - Artículos
+  - Nombre
+  - Detalle
+  - Medida
+  - U/M
+  - Referencia
+  - UM
+
+cuantitativo:
+  - Cantidad
+  - Cant
+  - Cant.
+  - Ctd
+  - Qty
+  - Piezas
+  - Pzas
+  - Pza
+  - Und
+  - Precio
+  - P.U.
+  - P/U
+  - P.U.C.D
+  - P.Unit
+  - Unitario
+  - Prec
+  - Valor Unit
+  - VR Unit
+  - P Unit
+  - V Unit
+  - Importe
+  - Monto
+  - Valor
+
+identificador:
+  - Cod
+  - Codigo
+  - ID
+  - Clave
+
+  
