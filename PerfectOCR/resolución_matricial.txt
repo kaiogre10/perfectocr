@@ -1,0 +1,116 @@
+### Explicación Matemática con Variables Normalizadas  
+Variables  
+- `c` (Cantidad) Número de unidades.  
+- `pu` (Precio unitario) Costo por unidad.  
+- `mtl` (Importe) Total por item (`mtl = c × pu`).  
+
+Ecuaciones clave  
+1. Relación por fila  
+   [
+   boxed{mtl = c times pu}
+   ]  
+2. Totales (si están disponibles)  
+   [
+   sum_{i=1}^n mtl_i = T quad text{(Total del ticket)}  
+   ]  
+   [
+   sum_{i=1}^n c_i = Q quad text{(Total de artículos)}  
+   ]  
+
+---
+
+### Estrategia para Completar la Matriz  
+
+#### Paso 1 Completar datos directos  
+Para cada fila, resolver la variable faltante usando  
+- Si faltan `mtl`  
+  [
+  mtl = c times pu
+  ]  
+- Si faltan `pu`  
+  [
+  pu = frac{mtl}{c} quad (c neq 0)
+  ]  
+- Si faltan `c`  
+  [
+  c = frac{mtl}{pu} quad (pu neq 0)
+  ]  
+
+#### Paso 2 Usar totales para huecos restantes  
+- Si se conoce `T` (Total del ticket)  
+  1. Calcular la suma parcial de `mtl` conocidos  
+     [
+     S_{text{mtl}} = sum text{mtl}_{text{conocidos}}
+     ]  
+  2. El `mtl` faltante se calcula como  
+     [
+     text{mtl}_{text{faltante}} = T - S_{text{mtl}}
+     ]  
+     - Si hay un solo `mtl` faltante, asignarlo directamente.  
+     - Si hay múltiples `mtl` faltantes, distribuir proporcionalmente (ej. usando `pu` como peso).  
+
+- Si se conoce `Q` (Total de artículos)  
+  1. Calcular la suma parcial de `c` conocidas  
+     [
+     S_c = sum c_{text{conocidos}}
+     ]  
+  2. La `c` faltante es  
+     [
+     c_{text{faltante}} = Q - S_c
+     ]  
+
+#### Paso 3 Validar consistencia  
+Para cada fila, verificar que  
+[
+left mtl - (c times pu) right leq epsilon quad text{(Tolerancia, ej. } epsilon = 0.01text{)}
+]  
+Si no se cumple, marcar como inconsistente.  
+
+---
+
+### Ejemplo Aplicado  
+Matriz de entrada (columnas en desorden)  
+ `pu`   `c`   `mtl`      
+-----------------------  
+ 30.00       30.00      
+       5     47.45      
+ 135.00      135.00     
+
+Totales  
+- `T = 1024.12` (Suma de `mtl`).  
+- `Q = 33` (Suma de `c`).  
+
+#### Solución  
+1. Fila 1  
+   - `mtl = 30.00`, `pu = 30.00` → `c = 30.00  30.00 = 1`.  
+
+2. Fila 2  
+   - `c = 5`, `mtl = 47.45` → `pu = 47.45  5 = 9.49`.  
+
+3. Fila 3  
+   - `mtl = 135.00`, `pu = 135.00` → `c = 1`.  
+
+Verificación de `Q`  
+- Suma de `c` conocidas `1 + 5 + 1 = 7`.  
+- Faltan `33 - 7 = 26` unidades (pero no hay más filas con `c` faltante). Inconsistencia detectada.  
+
+---
+
+### Manejo de Casos Comunes  
+1. Columnas en desorden  
+   - Identificar las columnas por nombre (ej. `pu`, `c`, `mtl`) antes de aplicar las ecuaciones.  
+
+2. Datos faltantes múltiples  
+   - Si faltan `c` y `pu` en una fila, pero se tiene `mtl`, asignar valores basados en promedios o supuestos (ej. `pu = promedio(pu_conocidos)`).  
+
+3. Tolerancia numérica  
+   - Ajustar redondeos (ej. `9.49 × 5 = 47.45 ≈ 47.5` si `ϵ = 0.05`).  
+
+---
+
+### Conclusión  
+- El método es general y aplica a cualquier matriz con variables `[c, pu, mtl]`, independientemente del orden de las columnas.  
+- Clave Usar las ecuaciones básicas (`mtl = c × pu`) y los totales (`T`, `Q`) para reducir incógnitas.  
+- Inconsistencias Se detectan cuando faltan más variables que ecuaciones disponibles.  
+
+¿Necesitas adaptar este método a algún caso específico que encuentres frecuentemente

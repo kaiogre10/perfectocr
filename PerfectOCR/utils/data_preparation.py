@@ -148,3 +148,99 @@ def prepare_unified_text_elements(ocr_output_data: Dict[str, Any]) -> List[Dict[
             
     logger.info(f"Preparados {len(unified_elements)} elementos de texto unificados desde OCR.")
     return unified_elements
+
+def prepare_header_ml_data(
+    base_name: str,
+    page_dimensions: Dict,
+    all_lines: List[Dict],
+    header_words: List[Dict]
+) -> Optional[Dict]:
+    """
+    Genera un diccionario con todas las palabras del OCR y una bandera `is_header`.
+    """
+    logger.info(f"prepare_header_ml_data: Iniciando generación para {base_name}")
+    
+    if not page_dimensions or 'width' not in page_dimensions or 'height' not in page_dimensions:
+        logger.warning("prepare_header_ml_data: Faltan dimensiones de página.")
+        return None
+
+    # Crear un conjunto de identificadores únicos para las palabras de encabezado
+    header_word_ids = set()
+    for hw in header_words:
+        # Usar múltiples campos para crear un identificador único
+        uid = (
+            hw.get('text_raw', hw.get('text', '')),
+            hw.get('xmin'),
+            hw.get('ymin'),
+            hw.get('xmax'),
+            hw.get('ymax')
+        )
+        header_word_ids.add(uid)
+
+    ml_words = []
+    total_words_processed = 0
+    
+    # Procesar todas las líneas y sus palabras
+    for line in all_lines:
+        words_in_line = line.get('constituent_elements_ocr_data', [])
+        for word in words_in_line:
+            total_words_processed += 1
+            
+            # Intentar obtener coordenadas de diferentes campos posibles
+            xmin = word.get('xmin') or word.get('left')
+            ymin = word.get('ymin') or word.get('top')
+            xmax = word.get('xmax') or word.get('right')
+            ymax = word.get('ymax') or word.get('bottom')
+            
+            # Si no tenemos coordenadas, intentar calcularlas desde otros campos
+            if xmin is None and 'cx' in word and 'width' in word:
+                xmin = word['cx'] - (word['width'] / 2)
+                xmax = word['cx'] + (word['width'] / 2)
+            if ymin is None and 'cy' in word and 'height' in word:
+                ymin = word['cy'] - (word['height'] / 2)
+                ymax = word['cy'] + (word['height'] / 2)
+            
+            if xmin is None or ymin is None or xmax is None or ymax is None:
+                logger.debug(f"prepare_header_ml_data: Palabra sin coordenadas válidas, omitiendo: {word.get('text_raw', 'N/A')}")
+                continue
+
+            # Crear identificador único para esta palabra
+            word_uid = (
+                word.get('text_raw', word.get('text', '')),
+                xmin,
+                ymin,
+                xmax,
+                ymax
+            )
+            
+            # Determinar si es encabezado
+            is_header = word_uid in header_word_ids
+
+            # Construir el diccionario de palabra para ML con formato exacto
+            ml_word = {
+                "text": word.get('text', word.get('text_raw', '')),
+                "xmin": float(xmin),
+                "xmax": float(xmax),
+                "ymin": float(ymin),
+                "ymax": float(ymax),
+                "is_header": is_header
+            }
+            ml_words.append(ml_word)
+    
+    logger.info(f"prepare_header_ml_data: Procesadas {len(ml_words)} palabras válidas de {total_words_processed} totales")
+    
+    if not ml_words:
+        logger.warning("prepare_header_ml_data: No se pudieron procesar palabras válidas.")
+        return None
+
+    output = {
+        "page_info": {
+            "document_name": base_name,
+            "page_w": page_dimensions['width'],
+            "page_h": page_dimensions['height']
+        },
+        "words": ml_words
+    }
+    
+    logger.info(f"prepare_header_ml_data: JSON generado exitosamente con {len(ml_words)} palabras")
+    return output

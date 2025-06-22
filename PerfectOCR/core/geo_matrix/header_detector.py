@@ -1,4 +1,4 @@
-# PerfectOCR/core/table_delimiter/header_detector.py
+# PerfectOCR/core/geo_matrix/header_detector.py
 import logging
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Any
@@ -32,8 +32,6 @@ class HeaderDetector:
         self.min_line_confidence = float(self.config.get('min_line_confidence_for_header', 70.0))
         self.max_header_line_gap_factor = float(self.config.get('max_header_line_gap_factor', 2.5))
         self.default_line_height_for_gap = float(self.config.get('default_line_height_for_gap', 20.0))
-
-        logger.info(f"HeaderDetector initialized. Keywords loaded: {len(self.header_keywords_list)}.")
 
     def set_page_dimensions(self, page_dimensions_input: Dict[str, Any]):
         if page_dimensions_input and page_dimensions_input.get('width') and page_dimensions_input.get('height'):
@@ -172,7 +170,6 @@ class HeaderDetector:
         
         final_decision = passes_min_keywords and passes_max_keywords and passes_confidence
         
-        logger.debug(f"Line '{line_text_preview_for_debug}': Y-Center={line_y_center:.2f}, Keywords={keyword_count} (Min:{self.min_keywords_in_line}, Max:{self.max_keywords_in_line}), Conf={current_line_avg_conf:.2f} (Min:{self.min_line_confidence:.2f}). Candidate: {final_decision}")
         return final_decision
 
     def _assign_semantic_type(self, header_text: str, semantic_keywords: Dict[str, list]) -> str:

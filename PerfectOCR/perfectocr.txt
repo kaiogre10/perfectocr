@@ -1,0 +1,109 @@
+2025-06-22 00:16:17 - INFO - __main__:248 - main - Iniciando procesamiento de documento: AAAA0006.png
+2025-06-22 00:16:17 - INFO - __main__:164 - main - El potenciamiento por directorio compartido está deshabilitado en configuración.
+2025-06-22 00:16:17 - INFO - utils.config_loader:39 - config_loader - Configuración cargada desde C:\PerfectOCR\config\master_config.yaml
+2025-06-22 00:16:18 - INFO - utils.config_loader:39 - config_loader - Configuración cargada desde C:\PerfectOCR\config\master_config.yaml
+2025-06-22 00:16:18 - INFO - coordinators.preprocessing_coordinator:38 - preprocessing_coordinator - PreprocessingCoordinator inicializado en modo YAML con 3 motores
+2025-06-22 00:16:44 - INFO - coordinators.preprocessing_coordinator:100 - preprocessing_coordinator - Preprocesamiento completado en 26.383s para input\AAAA0006.png
+2025-06-22 00:16:44 - INFO - coordinators.spatial_coordinator:55 - spatial_coordinator - SpatialAnalyzer iniciando análisis para imagen de 2056x2954.
+2025-06-22 00:16:44 - INFO - core.spatial_analysis.density_calculator:48 - density_calculator - Mapa de densidad calculado con ventana de 23x23.
+2025-06-22 00:16:44 - INFO - coordinators.spatial_coordinator:70 - spatial_coordinator - Análisis de densidad completado por SpatialAnalyzerCoordinator.
+2025-06-22 00:16:45 - INFO - core.spatial_analysis.gradient_calculator:160 - gradient_calculator - Detector de consistencia y artificialidad encontró y fusionó 2 regiones de ruido.
+2025-06-22 00:16:45 - INFO - coordinators.spatial_coordinator:464 - spatial_coordinator - Método de gradiente detectó 2 regiones de ruido.
+2025-06-22 00:16:45 - INFO - coordinators.ocr_coordinator:39 - ocr_coordinator - Tesseract deshabilitado en configuración.
+2025-06-22 00:16:48 - INFO - core.ocr.paddle_wrapper:34 - paddle_wrapper - PaddleOCR engine inicializado exitosamente desde rutas locales.
+2025-06-22 00:16:48 - INFO - coordinators.ocr_coordinator:46 - ocr_coordinator - PaddleOCRWrapper inicializado y habilitado.
+2025-06-22 00:17:07 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\AAAA0006_ocr_raw_results.json
+2025-06-22 00:17:07 - INFO - core.geo_matrix.lineal_reconstructor:24 - lineal_reconstructor - LineReconstructor inicializado. Método Agrupamiento: Solapamiento Vertical (Umbral Global: 0.40). Tighten_geometry: False (ratio=0.030)
+2025-06-22 00:17:07 - INFO - core.geo_matrix.lineal_reconstructor:254 - lineal_reconstructor - Iniciando reconstrucción de líneas para el motor: paddleocr
+2025-06-22 00:17:08 - INFO - core.geo_matrix.lineal_reconstructor:305 - lineal_reconstructor - Reconstrucción paralela por motor completada. Tesseract: 0 líneas, PaddleOCR: 25 líneas.
+2025-06-22 00:17:08 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\AAAA0006_reconstructed_lines.json
+2025-06-22 00:17:08 - INFO - utils.embedding_manager:53 - embedding_manager - Cargando modelo de embeddings: paraphrase-multilingual-MiniLM-L12-v2
+2025-06-22 00:17:08 - INFO - sentence_transformers.SentenceTransformer:211 - SentenceTransformer - Use pytorch device_name: cpu
+2025-06-22 00:17:08 - INFO - sentence_transformers.SentenceTransformer:219 - SentenceTransformer - Load pretrained SentenceTransformer: paraphrase-multilingual-MiniLM-L12-v2
+2025-06-22 00:17:15 - INFO - utils.embedding_manager:56 - embedding_manager - Modelo de embeddings cargado exitosamente
+2025-06-22 00:17:15 - INFO - core.text_cleaning.text_cleaner:36 - text_cleaner - TextCleaner inicializado - Activación condicional por confianza
+2025-06-22 00:17:15 - INFO - coordinators.text_cleaning_coordinator:21 - text_cleaning_coordinator - TextCleaningCoordinator inicializado con TextCleaner
+2025-06-22 00:17:15 - INFO - coordinators.text_cleaning_coordinator:33 - text_cleaning_coordinator - Iniciando limpieza de líneas reconstruidas...
+2025-06-22 00:17:15 - INFO - core.text_cleaning.text_cleaner:180 - text_cleaner - Normalizado valor numérico: '5 PUNTILLAS PM 0.5 67`6 47.45 15' → '5 PUNTILLAS PM 0.5 67.6 47.45 15'
+2025-06-22 00:17:17 - INFO - core.text_cleaning.text_cleaner:180 - text_cleaner - Normalizado valor numérico: 'ri CREPE NGO C/10 48.00 00'96' → 'ri CREPE NGO C/10 48.00 00.96'
+2025-06-22 00:17:17 - INFO - coordinators.text_cleaning_coordinator:83 - text_cleaning_coordinator - Limpieza completada: 3/25 líneas corregidas
+2025-06-22 00:17:18 - INFO - coordinators.table_extractor_coordinator:139 - table_extractor_coordinator - Usando HeaderDetector clásico para la detección de cabecera.
+2025-06-22 00:17:18 - INFO - core.geo_matrix.header_detector:41 - header_detector - HeaderDetector.set_page_dimensions: Successfully set W:2056.0, H:2954.0
+2025-06-22 00:17:18 - INFO - coordinators.table_extractor_coordinator:161 - table_extractor_coordinator - Intentando detección de cabecera con HeaderDetector clásico...
+2025-06-22 00:17:18 - INFO - core.geo_matrix.header_detector:319 - header_detector - Header band identified between Y=1443.00 and Y=1529.00 with 5 words.
+2025-06-22 00:17:18 - INFO - core.geo_matrix.geometric_table_structurer:13 - geometric_table_structurer - GeometricTableStructurer initialized.
+2025-06-22 00:17:18 - INFO - core.geo_matrix.geometric_table_structurer:57 - geometric_table_structurer - GeometricTableStructurer: Structuring table with H=5 columns.
+2025-06-22 00:17:18 - INFO - core.geo_matrix.geometric_table_structurer:160 - geometric_table_structurer - GeometricTableStructurer: Successfully structured 13 lines into 5 columns.
+2025-06-22 00:17:18 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\AAAA0006_table_body_lines.json
+2025-06-22 00:17:18 - INFO - utils.data_preparation:161 - data_preparation - prepare_header_ml_data: Iniciando generación para AAAA0006
+2025-06-22 00:17:18 - INFO - utils.data_preparation:230 - data_preparation - prepare_header_ml_data: Procesadas 82 palabras válidas de 82 totales
+2025-06-22 00:17:18 - INFO - utils.data_preparation:245 - data_preparation - prepare_header_ml_data: JSON generado exitosamente con 82 palabras
+2025-06-22 00:17:18 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\AAAA0006_ml_training_data.json
+2025-06-22 00:17:18 - INFO - __main__:328 - main - Fase 7: Iniciando post-procesamiento de la tabla.
+2025-06-22 00:17:18 - INFO - core.postprocessing.math_max:19 - math_max - MatrixSolver (Resolución Matricial) inicializado con tolerancia: 0.05
+2025-06-22 00:17:18 - INFO - coordinators.postprocessing_coordinator:48 - postprocessing_coordinator - Fase 1: Ejecutando corrección estructural...
+2025-06-22 00:17:18 - INFO - coordinators.postprocessing_coordinator:55 - postprocessing_coordinator - Fase 2: Ejecutando corrección de consistencia semántica...
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 0 (Tipo: cuantitativo) ---
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:90 - semantic_consistency -   Perfil Cuantitativo: Media=3.11, StdDev=2.73 (9 valores)
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 1 (Tipo: descriptivo) ---
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:124 - semantic_consistency -   Perfil Descriptivo: Creado a partir de 13 celdas de texto válidas.
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 2 (Tipo: cuantitativo) ---
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:90 - semantic_consistency -   Perfil Cuantitativo: Media=49.94, StdDev=32.06 (12 valores)
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 3 (Tipo: cuantitativo) ---
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:90 - semantic_consistency -   Perfil Cuantitativo: Media=77.34, StdDev=61.73 (12 valores)
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 4 (Tipo: descriptivo) ---
+2025-06-22 00:17:18 - INFO - core.postprocessing.semantic_consistency:67 - semantic_consistency - Corrección de consistencia completada. 0 datos puestos en cuarentena.
+2025-06-22 00:17:18 - INFO - coordinators.postprocessing_coordinator:60 - postprocessing_coordinator - Datos en cuarentena después de Fase 2: []
+2025-06-22 00:17:18 - INFO - coordinators.postprocessing_coordinator:66 - postprocessing_coordinator - Fase 3: Ejecutando resolución matricial (MatrixSolver)...
+2025-06-22 00:17:18 - INFO - core.postprocessing.math_max:69 - math_max - Mejor hipótesis encontrada: c=0, pu=2, mtl=3 con 0 inconsistencias.
+2025-06-22 00:17:18 - INFO - __main__:487 - main - Matriz simplificada de depuración (semantically_corrected_matrix) guardada en: C:/PerfectOCR/output\AAAA0006_semantically_corrected_matrix.json
+2025-06-22 00:17:18 - INFO - utils.output_handlers:233 - output_handlers - Archivo Excel de ground truth guardado en: C:/PerfectOCR/output\ground_truth_batch.xlsx
+2025-06-22 00:17:18 - INFO - __main__:487 - main - Matriz simplificada de depuración (semantic_consistency_matrix) guardada en: C:/PerfectOCR/output\AAAA0006_semantic_consistency_matrix.json
+2025-06-22 00:17:18 - INFO - __main__:487 - main - Matriz simplificada de depuración (math_max_matrix) guardada en: C:/PerfectOCR/output\AAAA0006_math_max_matrix.json
+2025-06-22 00:17:18 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\AAAA0006_structured_table.json
+2025-06-22 00:17:18 - INFO - __main__:248 - main - Iniciando procesamiento de documento: prueba12.png
+2025-06-22 00:17:44 - INFO - coordinators.preprocessing_coordinator:100 - preprocessing_coordinator - Preprocesamiento completado en 25.780s para input\prueba12.png
+2025-06-22 00:17:44 - INFO - coordinators.spatial_coordinator:55 - spatial_coordinator - SpatialAnalyzer iniciando análisis para imagen de 2056x2954.
+2025-06-22 00:17:44 - INFO - core.spatial_analysis.density_calculator:48 - density_calculator - Mapa de densidad calculado con ventana de 23x23.
+2025-06-22 00:17:44 - INFO - coordinators.spatial_coordinator:70 - spatial_coordinator - Análisis de densidad completado por SpatialAnalyzerCoordinator.
+2025-06-22 00:17:45 - INFO - core.spatial_analysis.gradient_calculator:160 - gradient_calculator - Detector de consistencia y artificialidad encontró y fusionó 2 regiones de ruido.
+2025-06-22 00:17:45 - INFO - coordinators.spatial_coordinator:464 - spatial_coordinator - Método de gradiente detectó 2 regiones de ruido.
+2025-06-22 00:17:59 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\prueba12_ocr_raw_results.json
+2025-06-22 00:17:59 - INFO - core.geo_matrix.lineal_reconstructor:24 - lineal_reconstructor - LineReconstructor inicializado. Método Agrupamiento: Solapamiento Vertical (Umbral Global: 0.40). Tighten_geometry: False (ratio=0.030)
+2025-06-22 00:17:59 - INFO - core.geo_matrix.lineal_reconstructor:254 - lineal_reconstructor - Iniciando reconstrucción de líneas para el motor: paddleocr
+2025-06-22 00:18:00 - INFO - core.geo_matrix.lineal_reconstructor:305 - lineal_reconstructor - Reconstrucción paralela por motor completada. Tesseract: 0 líneas, PaddleOCR: 26 líneas.
+2025-06-22 00:18:00 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\prueba12_reconstructed_lines.json
+2025-06-22 00:18:00 - INFO - coordinators.text_cleaning_coordinator:33 - text_cleaning_coordinator - Iniciando limpieza de líneas reconstruidas...
+2025-06-22 00:18:02 - INFO - coordinators.text_cleaning_coordinator:83 - text_cleaning_coordinator - Limpieza completada: 3/26 líneas corregidas
+2025-06-22 00:18:02 - INFO - coordinators.table_extractor_coordinator:139 - table_extractor_coordinator - Usando HeaderDetector clásico para la detección de cabecera.
+2025-06-22 00:18:02 - INFO - core.geo_matrix.header_detector:41 - header_detector - HeaderDetector.set_page_dimensions: Successfully set W:2056.0, H:2954.0
+2025-06-22 00:18:02 - INFO - coordinators.table_extractor_coordinator:161 - table_extractor_coordinator - Intentando detección de cabecera con HeaderDetector clásico...
+2025-06-22 00:18:02 - INFO - core.geo_matrix.header_detector:319 - header_detector - Header band identified between Y=1403.00 and Y=1474.00 with 4 words.
+2025-06-22 00:18:02 - INFO - core.geo_matrix.geometric_table_structurer:13 - geometric_table_structurer - GeometricTableStructurer initialized.
+2025-06-22 00:18:02 - INFO - core.geo_matrix.geometric_table_structurer:57 - geometric_table_structurer - GeometricTableStructurer: Structuring table with H=4 columns.
+2025-06-22 00:18:02 - INFO - core.geo_matrix.geometric_table_structurer:160 - geometric_table_structurer - GeometricTableStructurer: Successfully structured 9 lines into 4 columns.
+2025-06-22 00:18:02 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\prueba12_table_body_lines.json
+2025-06-22 00:18:02 - INFO - utils.data_preparation:161 - data_preparation - prepare_header_ml_data: Iniciando generación para prueba12
+2025-06-22 00:18:02 - INFO - utils.data_preparation:230 - data_preparation - prepare_header_ml_data: Procesadas 53 palabras válidas de 53 totales
+2025-06-22 00:18:02 - INFO - utils.data_preparation:245 - data_preparation - prepare_header_ml_data: JSON generado exitosamente con 53 palabras
+2025-06-22 00:18:02 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\prueba12_ml_training_data.json
+2025-06-22 00:18:02 - INFO - __main__:328 - main - Fase 7: Iniciando post-procesamiento de la tabla.
+2025-06-22 00:18:02 - INFO - coordinators.postprocessing_coordinator:48 - postprocessing_coordinator - Fase 1: Ejecutando corrección estructural...
+2025-06-22 00:18:02 - INFO - coordinators.postprocessing_coordinator:55 - postprocessing_coordinator - Fase 2: Ejecutando corrección de consistencia semántica...
+2025-06-22 00:18:02 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 0 (Tipo: cuantitativo) ---
+2025-06-22 00:18:02 - INFO - core.postprocessing.semantic_consistency:90 - semantic_consistency -   Perfil Cuantitativo: Media=1.60, StdDev=0.80 (5 valores)
+2025-06-22 00:18:02 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 1 (Tipo: descriptivo) ---
+2025-06-22 00:18:03 - INFO - core.postprocessing.semantic_consistency:124 - semantic_consistency -   Perfil Descriptivo: Creado a partir de 9 celdas de texto válidas.
+2025-06-22 00:18:03 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 2 (Tipo: cuantitativo) ---
+2025-06-22 00:18:03 - INFO - core.postprocessing.semantic_consistency:90 - semantic_consistency -   Perfil Cuantitativo: Media=54.00, StdDev=24.78 (9 valores)
+2025-06-22 00:18:03 - INFO - core.postprocessing.semantic_consistency:43 - semantic_consistency - --- Analizando Columna 3 (Tipo: cuantitativo) ---
+2025-06-22 00:18:03 - INFO - core.postprocessing.semantic_consistency:90 - semantic_consistency -   Perfil Cuantitativo: Media=84.85, StdDev=37.04 (8 valores)
+2025-06-22 00:18:03 - INFO - core.postprocessing.semantic_consistency:67 - semantic_consistency - Corrección de consistencia completada. 0 datos puestos en cuarentena.
+2025-06-22 00:18:03 - INFO - coordinators.postprocessing_coordinator:60 - postprocessing_coordinator - Datos en cuarentena después de Fase 2: []
+2025-06-22 00:18:03 - INFO - coordinators.postprocessing_coordinator:66 - postprocessing_coordinator - Fase 3: Ejecutando resolución matricial (MatrixSolver)...
+2025-06-22 00:18:03 - INFO - core.postprocessing.math_max:69 - math_max - Mejor hipótesis encontrada: c=0, pu=2, mtl=3 con 0 inconsistencias.
+2025-06-22 00:18:03 - INFO - __main__:487 - main - Matriz simplificada de depuración (semantically_corrected_matrix) guardada en: C:/PerfectOCR/output\prueba12_semantically_corrected_matrix.json
+2025-06-22 00:18:03 - INFO - utils.output_handlers:294 - output_handlers - Matriz añadida al archivo Excel: C:/PerfectOCR/output\ground_truth_batch.xlsx
+2025-06-22 00:18:03 - INFO - __main__:487 - main - Matriz simplificada de depuración (semantic_consistency_matrix) guardada en: C:/PerfectOCR/output\prueba12_semantic_consistency_matrix.json
+2025-06-22 00:18:03 - INFO - __main__:487 - main - Matriz simplificada de depuración (math_max_matrix) guardada en: C:/PerfectOCR/output\prueba12_math_max_matrix.json
+2025-06-22 00:18:03 - INFO - utils.output_handlers:59 - output_handlers - Datos JSON guardados en: C:/PerfectOCR/output\prueba12_structured_table.json

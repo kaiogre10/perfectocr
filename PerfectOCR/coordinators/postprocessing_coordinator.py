@@ -2,9 +2,10 @@
 import logging
 import os
 from typing import Dict, Any, List
-# Se importa solo el corrector semántico, como se ha solicitado.
-from core.postprocessing.correctors import SemanticTableCorrector
-# Se eliminan los imports de TextFormatter, ya que no se usará.
+from core.postprocessing.semantic_corrector import SemanticTableCorrector
+from core.postprocessing.semantic_consistency import UnifiedSemanticConsistencyCorrector
+from core.postprocessing.math_max import MatrixSolver
+import re 
 
 logger = logging.getLogger(__name__)
 
@@ -12,52 +13,174 @@ class PostprocessingCoordinator:
     def __init__(self, config: Dict, project_root: str):
         """
         Inicializa el coordinador de post-procesamiento.
-        Por ahora, se enfoca únicamente en la corrección estructural de la tabla.
+        Orquesta el pipeline completo de 3 fases:
+        1. Corrección Estructural
+        2. Corrección de Consistencia Semántica
+        3. Resolución Matricial Aritmética
         """
         self.config = config
         self.project_root = project_root
 
-        semantic_corrector_cfg = self.config.get('semantic_table_correction', {})
-        self.semantic_table_corrector = SemanticTableCorrector(config=semantic_corrector_cfg)
+        postprocessing_cfg = self.config.get('postprocessing', {})
         
-        # Se elimina la inicialización de TextCorrector y TextFormatter.
-
-        logger.info("PostprocessingCoordinator inicializado para corrección de ESTRUCTURA de tabla.")
+        self.structural_corrector = SemanticTableCorrector(config=postprocessing_cfg)
+        self.consistency_corrector = UnifiedSemanticConsistencyCorrector(config=postprocessing_cfg)
+        self.matrix_solver = MatrixSolver(config=postprocessing_cfg)
 
     def correct_table_structure(self, extraction_payload: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Aplica la corrección semántica a la matriz de una tabla extraída.
-        
-        Recibe el payload completo del TableExtractorCoordinator y devuelve
-        un payload actualizado con la matriz corregida.
+        Aplica el pipeline de corrección de 3 fases a la matriz de la tabla.
         """
-        logger.info("Iniciando corrección semántica de la estructura de la tabla.")
-        
         outputs = extraction_payload.get('outputs')
-        if not outputs or 'table_matrix' not in outputs or 'header_elements' not in outputs:
-            logger.warning("Payload no contiene 'outputs.table_matrix' o 'outputs.header_elements'. No se aplica corrección.")
+        if not all(k in outputs for k in ['table_matrix', 'header_elements']):
+            logger.error("Payload incompleto. Faltan 'table_matrix' o 'header_elements'.")
             return extraction_payload
 
-        # Extraer los datos necesarios del payload
-        matrix_to_correct = outputs['table_matrix']
+        matrix_raw = outputs['table_matrix']
         headers = outputs['header_elements']
+        semantic_types = [h.get('semantic_type', 'descriptivo') for h in headers]
+        document_totals = outputs.get('document_totals') # opcional
 
-        # Delegar la corrección al módulo especializado
-        corrected_matrix = self.semantic_table_corrector.correct_matrix(
-            matrix=matrix_to_correct,
+        # --- FASE 0: Adaptar Matriz de Entrada ---
+        adapted_matrix = self._adapt_matrix_for_corrector(matrix_raw)
+        
+        # --- FASE 1: Corrección Estructural ---
+        logger.info("Fase 1: Ejecutando corrección estructural...")
+        structured_matrix = self.structural_corrector.correct_matrix(
+            matrix=adapted_matrix,
             header_elements=headers
         )
         
-        # Crear una copia del payload para no modificar el original directamente
+        # --- FASE 2: Corrección de Consistencia Semántica ---
+        logger.info("Fase 2: Ejecutando corrección de consistencia semántica...")
+        consistency_corrected_matrix, quarantined_data = self.consistency_corrector.correct_matrix(
+            matrix=structured_matrix,
+            semantic_types=semantic_types
+        )
+        logger.info(f"Datos en cuarentena después de Fase 2: {quarantined_data}")
+        
+        # Guardar la matriz después de la corrección de consistencia semántica
+        outputs['semantic_consistency_matrix'] = consistency_corrected_matrix
+
+        # --- FASE 3: Resolución Matricial Aritmética ---
+        logger.info("Fase 3: Ejecutando resolución matricial (MatrixSolver)...")
+        final_matrix = self.matrix_solver.solve(
+            matrix=consistency_corrected_matrix,
+            semantic_types=semantic_types,
+            quarantined_data=quarantined_data,
+            document_totals=document_totals
+        )
+        
+        # --- Finalizar y Actualizar Payload ---
         corrected_payload = extraction_payload.copy()
-        corrected_payload['outputs'] = outputs.copy()  # Asegurar que 'outputs' también sea una copia
-        corrected_payload['outputs']['table_matrix'] = corrected_matrix
+        corrected_payload['outputs'] = outputs.copy()
+        corrected_payload['outputs']['table_matrix'] = final_matrix
+        corrected_payload['outputs']['math_max_matrix'] = final_matrix  # Guardar la matriz final de math_max
+        corrected_payload['outputs']['quarantined_data'] = quarantined_data
         
-        # Actualizar el estado para reflejar que la corrección semántica fue aplicada
-        corrected_payload['status'] = 'success_semantically_corrected'
-        corrected_payload['message'] = 'Tabla estructurada y corregida semánticamente.'
+        corrected_payload['status'] = 'success_arithmetically_solved'
+        corrected_payload['message'] = 'Tabla reconstruida y resuelta aritméticamente.'
         
-        logger.info("Corrección semántica de la tabla completada.")
         return corrected_payload
 
-    # El método correct_and_format ha sido eliminado para centrarse en la corrección estructural.
+    def _adapt_matrix_for_corrector(self, matrix: List[List[Any]]) -> List[List[Dict[str, Any]]]:
+        """
+        Adapta la matriz del formato del TableExtractor al formato esperado por el corrector estructural.
+        Asegura que cada 'word' tenga la clave 'text'.
+        """
+        adapted_matrix = []
+        
+        for row_idx, row in enumerate(matrix):
+            adapted_row = []
+            
+            for col_idx, cell in enumerate(row):
+                if isinstance(cell, dict):
+                    working_cell = cell
+                else:
+                    working_cell = {'cell_text': str(cell) if cell is not None else '', 'words': []}
+
+                adapted_cell = {'cell_text': working_cell.get('cell_text', ''), 'words': []}
+                original_words = working_cell.get('words', [])
+
+                if original_words:
+                    for word in original_words:
+                        if isinstance(word, dict):
+                            adapted_word = word.copy()
+                            if 'text' not in adapted_word and 'text_raw' in adapted_word:
+                                adapted_word['text'] = adapted_word['text_raw']
+                            adapted_cell['words'].append(adapted_word)
+
+                elif adapted_cell['cell_text'].strip():
+                    adapted_word = {
+                        'text': adapted_cell['cell_text'].strip(),
+                        'xmin': col_idx * 100, 'xmax': (col_idx + 1) * 100,
+                        'cx': col_idx * 100 + 50, 'cy': row_idx * 100 + 50,
+                        'width': 100, 'height': 50
+                    }
+                    adapted_cell['words'].append(adapted_word)
+                
+                adapted_row.append(adapted_cell)
+            
+            adapted_matrix.append(adapted_row)
+        
+        return adapted_matrix
+
+    # --- DESACTIVADO: Método completo para la validación del total ---
+    # def _validate_grand_total(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    #     """Compara la suma de la columna de importes con el total extraído del documento."""
+    #     outputs = payload.get('outputs', {})
+    #     document_total = outputs.get('document_grand_total')
+    #     matrix = outputs.get('table_matrix', [])
+    #     headers = outputs.get('header_elements', [])
+    #     
+    #     if document_total is None:
+    #         return {"status": "skipped", "message": "No se extrajo un total del documento para validar."}
+    #     if not matrix or not headers:
+    #         return {"status": "skipped", "message": "Matriz o cabeceras no disponibles para validación."}
+    #
+    #     # Identificar la columna de importe (la última cuantitativa antes de la última columna)
+    #     total_col_idx = -1
+    #     try:
+    #         # La heurística más robusta: la columna cuyo header contenga "IMPORTE"
+    #         total_col_idx = next(i for i, h in enumerate(headers) if "IMPORTE" in h.get('text_raw','').upper())
+    #     except StopIteration:
+    #         logger.warning("No se encontró cabecera 'IMPORTE'. Se usará una heurística de posición.")
+    #         cuant_indices = [i for i, h in enumerate(headers) if h.get('semantic_type') == 'cuantitativo']
+    #         if len(cuant_indices) >= 2:
+    #             total_col_idx = cuant_indices[-1] # El último cuantitativo suele ser el total de línea
+    #
+    #     if total_col_idx == -1:
+    #          return {"status": "error", "message": "No se pudo identificar la columna de importes."}
+    #
+    #     # Sumar los valores de la columna de importe
+    #     calculated_sum = 0.0
+    #     for row in matrix:
+    #         cell = row[total_col_idx]
+    #         if isinstance(cell, dict):
+    #             cell_text = cell.get('cell_text', '')
+    #         else:
+    #             cell_text = str(cell) if cell is not None else ''
+    #         cleaned_s = re.sub(r'[^\d.]', '', cell_text)
+    #         try:
+    #             calculated_sum += float(cleaned_s)
+    #         except (ValueError, TypeError):
+    #             pass # Ignorar celdas no numéricas o con errores
+    #
+    #     # Comparar con una tolerancia (ej. 5.0, como la validación de fila)
+    #     tolerance = self.config.get('semantic_table_correction', {}).get('arithmetic_tolerance', 5.0)
+    #     difference = abs(calculated_sum - document_total)
+    #     
+    #     if difference <= tolerance:
+    #         status = "success"
+    #         message = f"La suma de importes ({calculated_sum:.2f}) coincide con el total del documento ({document_total:.2f})."
+    #     else:
+    #         status = "failed"
+    #         message = f"La suma de importes ({calculated_sum:.2f}) NO coincide con el total del documento ({document_total:.2f}). Diferencia: {difference:.2f}"
+    #
+    #     return {
+    #         "status": status,
+    #         "message": message,
+    #         "document_total": document_total,
+    #         "calculated_sum": round(calculated_sum, 2),
+    #         "difference": round(difference, 2)
+    #     }

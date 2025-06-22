@@ -3,16 +3,18 @@ import logging
 import os
 import yaml
 import json
-import numpy as np
 from typing import Dict, Any, Optional, List
-from datetime import datetime
 from core.geo_matrix.geometric_table_structurer import GeometricTableStructurer
 from core.geo_matrix.lineal_reconstructor import LineReconstructor
 from core.geo_matrix.header_detector import HeaderDetector
 from utils.output_handlers import JsonOutputHandler
 from utils.spatial_utils import get_line_y_coordinate
 from utils.geometric import get_polygon_bounds
-from scipy.signal import find_peaks
+from utils.data_preparation import prepare_header_ml_data
+import re
+from concurrent.futures import ThreadPoolExecutor
+from rapidfuzz import process, fuzz
+
 
 logger = logging.getLogger(__name__)
 
@@ -23,287 +25,215 @@ class TableExtractorCoordinator:
         self.line_reconstructor_params = self.config.get('line_reconstructor_params', {})
         self.header_detector_config = self.config.get('header_detector_config', {})
         self.geometric_structurer_config = self.config.get('geometric_structurer_config', {})
-        self.max_validation_config = self.config.get('max_validation_config', {})
+
         self.line_reconstructor: Optional[LineReconstructor] = None
         self.header_detector: Optional[HeaderDetector] = None
         self.geometric_structurer: Optional[GeometricTableStructurer] = None
         self.json_output_handler = JsonOutputHandler()
-        logger.info("TableExtractorCoordinator inicializado.")
-
-    def _load_semantic_keywords(self) -> Dict[str, List[str]]:
-        semantic_keywords_path = self.header_detector_config.get('table_header_keywords_list', {}).get('semantic_keywords_path')
-        if not semantic_keywords_path:
-            logger.error("No se encontró la ruta al archivo de palabras clave semánticas en la configuración")
+        
+    def reconstruct_lines(self, ocr_results: Dict, base_name: str, output_dir: str) -> Dict[str, list]:
+        """
+        Reconstruye las líneas a partir de los resultados de OCR y las guarda.
+        No realiza limpieza de texto.
+        """
+        metadata = ocr_results.get("metadata", {})
+        page_dimensions = metadata.get("dimensions") or metadata.get("page_dimensions") or {}
+        width = page_dimensions.get('width')
+        height = page_dimensions.get('height')
+        if width is None or height is None or width <= 0 or height <= 0:
+            logger.error(f"Dimensiones de página inválidas")
             return {}
-        if not os.path.isabs(semantic_keywords_path):
-            semantic_keywords_path = os.path.join(self.project_root, semantic_keywords_path)
-        try:
-            with open(semantic_keywords_path, 'r', encoding='utf-8') as f:
-                semantic_keywords = yaml.safe_load(f)
-            # Validar que semantic_keywords sea un diccionario
-            if not isinstance(semantic_keywords, dict):
-                logger.error(f"El archivo de palabras clave semánticas no tiene el formato esperado. Se esperaba un diccionario, se obtuvo {type(semantic_keywords)}")
-                return {}
-            
-            # Preservar la estructura de categorías y normalizar las palabras clave
-            processed_keywords = {}
-            for category, keywords in semantic_keywords.items():
-                if isinstance(keywords, list):
-                    # Normalizar todas las palabras clave a mayúsculas y limpiar espacios
-                    processed_keywords[category.lower()] = [str(kw).upper().strip() for kw in keywords if kw]
-            
-            logger.debug(f"Palabras clave semánticas cargadas: {processed_keywords}")
-            return processed_keywords
-        except Exception as e:
-            logger.error(f"Error cargando palabras clave semánticas: {e}")
-            return {}
-            
-    def _build_error_response(self, code: str, message: str) -> Dict[str, Any]:
-        return {"status": code, "message": message, "outputs": {}}
 
-    def _save_simplified_matrix(self, matrix_data: List[List[Dict]], header_elements: List[Dict], base_name: str, output_dir: str, suffix: str):
-        """Guarda una versión simplificada de solo texto de una matriz estructurada."""
-        if not matrix_data:
-            return
-
-        headers = [h.get("text_raw", "") for h in header_elements]
-        semantic_types = [h.get("semantic_type", "descriptivo") for h in header_elements]
-        matrix_texts = [[cell.get("cell_text", "") for cell in row] for row in matrix_data]
-
-        simplified_dict = {
-            "headers": headers,
-            "semantic_types": semantic_types,
-            "matrix": matrix_texts
-        }
-
-        output_filename = f"{base_name}_{suffix}.json"
-        output_path = os.path.join(output_dir, output_filename)
-        try:
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(simplified_dict, f, ensure_ascii=False, indent=2)
-            logger.info(f"Matriz simplificada de depuración guardada en: {output_path}")
-        except Exception as e:
-            logger.error(f"Error guardando la matriz simplificada de depuración en {output_path}: {e}")
-
-    def _binarize_line(self, line: Dict[str, Any], page_width: int) -> np.ndarray:
-        """
-        Binariza una línea de texto creando una máscara 2D unificada de todos los polígonos.
-        Retorna una matriz 2D donde cada fila representa una fila de píxeles de la línea completa.
-        """
-        # Obtener las dimensiones verticales de la línea
-        segments = line.get('constituent_elements_ocr_data', [])
-        if not segments:
-            return np.zeros((1, page_width), dtype=np.uint8)
-        
-        # Calcular el bounding box vertical de toda la línea
-        y_coords = []
-        for segment in segments:
-            y_coords.extend([segment.get('ymin', 0), segment.get('ymax', 0)])
-        
-        if not y_coords:
-            return np.zeros((1, page_width), dtype=np.uint8)
-            
-        line_ymin = int(min(y_coords))
-        line_ymax = int(max(y_coords))
-        line_height = max(1, line_ymax - line_ymin)
-        
-        # Crear máscara 2D
-        binary_line_2d = np.zeros((line_height, page_width), dtype=np.uint8)
-        
-        # Marcar todas las regiones de tinta de los polígonos de PaddleOCR
-        for segment in segments:
-            xmin = int(segment.get('xmin', 0))
-            xmax = int(segment.get('xmax', 0))
-            ymin = int(segment.get('ymin', 0)) - line_ymin  # Relativo al inicio de la línea
-            ymax = int(segment.get('ymax', 0)) - line_ymin  # Relativo al inicio de la línea
-            
-            # Validar coordenadas
-            if (xmin < xmax and xmin >= 0 and xmax <= page_width and 
-                ymin >= 0 and ymax <= line_height and ymin < ymax):
-                binary_line_2d[ymin:ymax, xmin:xmax] = 1
-        
-        return binary_line_2d
-
-    def _analyze_overlapped_rows(self, binary_line_2d: np.ndarray) -> np.ndarray:
-        """
-        Analiza el solapamiento de filas para encontrar espacios consistentes.
-        Para cada columna X, cuenta cuántas filas tienen espacio en blanco (fondo).
-        Los espacios más consistentes tendrán valores más altos.
-        """
-        if binary_line_2d.size == 0:
-            return np.array([])
-        
-        # Para cada columna X, contar cuántas filas tienen fondo (0=fondo/espacio, 1=tinta)
-        # Los espacios consistentes aparecerán como columnas con muchos 0s
-        space_profile = np.sum(binary_line_2d == 0, axis=0)
-        return space_profile
-
-    def _find_column_boundaries_by_spaces(self, binary_line_2d: np.ndarray, num_columns: int) -> List[int]:
-        """
-        Encuentra los límites de columna usando análisis de solapamiento de filas.
-        Busca los H-1 espacios más consistentes y largos en la máscara 2D.
-        """
-        H = num_columns
-        if H <= 1 or binary_line_2d.size == 0:
-            return []
-
-        # Obtener el perfil de espacios solapados
-        space_profile = self._analyze_overlapped_rows(binary_line_2d)
-        if space_profile.size == 0:
-            return []
-        
-        # Encontrar regiones de espacios consistentes
-        # Un espacio es consistente si aparece en muchas filas
-        line_height = binary_line_2d.shape[0]
-        min_consistency_threshold = max(1, int(line_height * 0.3))  # Al menos 30% de las filas
-        
-        # Identificar columnas que son espacios consistentes
-        consistent_spaces = space_profile >= min_consistency_threshold
-        
-        # Encontrar grupos consecutivos de espacios
-        espacios = []
-        in_space = False
-        space_start = 0
-        
-        for x, is_space in enumerate(consistent_spaces):
-            if is_space and not in_space:
-                # Inicio de un espacio
-                in_space = True
-                space_start = x
-            elif not is_space and in_space:
-                # Fin de un espacio
-                space_width = x - space_start
-                space_center = (space_start + x - 1) // 2
-                # Usar la consistencia promedio como peso del espacio
-                avg_consistency = np.mean(space_profile[space_start:x])
-                espacios.append((space_width * avg_consistency, space_center, space_start, x - 1))
-                in_space = False
-        
-        # Manejar el caso donde el espacio llega hasta el final
-        if in_space:
-            space_width = len(consistent_spaces) - space_start
-            space_center = (space_start + len(consistent_spaces) - 1) // 2
-            avg_consistency = np.mean(space_profile[space_start:])
-            espacios.append((space_width * avg_consistency, space_center, space_start, len(consistent_spaces) - 1))
-        
-        if len(espacios) < H - 1:
-            logger.debug(f"Solo se encontraron {len(espacios)} espacios consistentes, se necesitan {H-1}")
-            return []
-        
-        # Seleccionar los H-1 espacios más importantes (por peso)
-        espacios_mayores = sorted(espacios, reverse=True)[:H-1]
-        # Ordenar por posición X para obtener los cortes en orden
-        espacios_mayores = sorted(espacios_mayores, key=lambda x: x[1])
-        
-        # Extraer las posiciones de corte (centros de los espacios)
-        cortes = [espacio[1] for espacio in espacios_mayores]
-        
-        #logger.debug(f"Espacios detectados por solapamiento: {len(espacios)}, seleccionados: {len(cortes)}")
-        return sorted(cortes)
-
-    def extract_table(
-        self,
-        ocr_results: Dict,
-        base_name: str,
-        output_dir: str
-    ) -> Dict[str, Any]:
-        page_dimensions = ocr_results.get("metadata", {}).get("dimensions", {})
-        if not page_dimensions.get('width') or not page_dimensions.get('height'):
-            return self._build_error_response("error_no_page_dims", "Dimensiones de página no disponibles.")
-
-        logger.info("Paso 1: Reconstruyendo líneas.")
-        line_reconstructor = LineReconstructor(page_dimensions['width'], page_dimensions['height'], self.line_reconstructor_params)
+        line_reconstructor = LineReconstructor(width, height, self.line_reconstructor_params)
         reconstructed_lines_by_engine = line_reconstructor.reconstruct_all_ocr_outputs_parallel(
             ocr_results.get("ocr_raw_results", {}).get("tesseract", {}).get("words", []),
             ocr_results.get("ocr_raw_results", {}).get("paddleocr", {}).get("lines", [])
         )
+                
+        reconstructed_lines_by_engine['page_dimensions'] = page_dimensions
+
         self.json_output_handler.save(
             reconstructed_lines_by_engine,
             output_dir,
             f"{base_name}_reconstructed_lines.json",
             output_type="reconstructed_lines"
         )
+        return reconstructed_lines_by_engine
 
-        logger.info("Paso 2: Detectando cabecera usando texto de PaddleOCR.")
-        semantic_keywords = self._load_semantic_keywords()
-        if not semantic_keywords:
-            logger.warning("No se pudieron cargar las palabras clave semánticas. Se usarán valores por defecto.")
+    def extract_table_from_cleaned_lines(self, cleaned_lines: Dict[str, list], base_name: str, output_dir: str) -> Dict[str, any]:
+        """
+        Recibe las líneas ya limpias y realiza la detección de cabecera, delimitación y estructuración de la tabla.
+        Permite cambiar entre el detector de cabeceras de ML y el clásico.
+        """
+        page_dimensions = cleaned_lines.get('page_dimensions', {})
+        if not page_dimensions:
+            for engine in ['paddle_lines', 'tesseract_lines']:
+                if cleaned_lines.get(engine) and cleaned_lines[engine]:
+                    page_dimensions = cleaned_lines[engine][0].get('page_dimensions', {})
+                    break
+
+        if not page_dimensions or not page_dimensions.get('width') or not page_dimensions.get('height'):
+            logger.error("No se encontraron dimensiones de página en las líneas limpias.")
+            return self._build_error_response("error_no_page_dims", "Dimensiones de página no disponibles.")
+
+        use_ml_detector = self.header_detector_config.get('use_ml_detector', False)
+        header_words, y_min_band, y_max_band = None, None, None
+        lines_for_header_detection = cleaned_lines.get('paddle_lines', [])
         
-        # Crear lista plana de todas las palabras clave para el HeaderDetector
+        # Inicializar variables que se usarán después
+        semantic_keywords = {}
         all_keywords_flat = []
-        if semantic_keywords:
-            for keywords_list in semantic_keywords.values():
-                all_keywords_flat.extend(keywords_list)
 
+        # Cargar palabras clave semánticas ANTES de cualquier detección
+        semantic_keywords = self._load_semantic_keywords()
+        all_keywords_flat = [kw for kws in semantic_keywords.values() for kw in kws] if semantic_keywords else []
+
+        if use_ml_detector:
+            logger.info("Usando MLHeaderDetector para la detección de cabecera.")
+            model_path = self.header_detector_config.get('ml_model_path')
+            if not model_path:
+                logger.error("Ruta del modelo de ML para cabecera no especificada en la configuración.")
+                return self._build_error_response("error_config", "Ruta del modelo de ML no configurada.")
+            
+            if not os.path.isabs(model_path):
+                model_path = os.path.join(self.project_root, model_path)
+
+            try:
+                from core.geo_matrix.ml_header_detector import MLHeaderDetector
+                logger.debug("MLHeaderDetector importado correctamente.")
+                
+                ml_detector = MLHeaderDetector(model_path=model_path)
+                logger.debug(f"MLHeaderDetector inicializado con el modelo: {model_path}")
+                
+                all_words = [word for line in lines_for_header_detection for word in line.get('constituent_elements_ocr_data', [])]
+                logger.debug(f"Se pasaron {len(all_words)} palabras al detector de ML.")
+                
+                header_words = ml_detector.detect(
+                    all_words=all_words,
+                    page_w=page_dimensions['width'],
+                    page_h=page_dimensions['height']
+                )
+                logger.info(f"MLHeaderDetector predijo {len(header_words)} palabras de cabecera.")
+
+                if header_words:
+                    ymins = [w['ymin'] for w in header_words if 'ymin' in w]
+                    ymaxs = [w['ymax'] for w in header_words if 'ymax' in w]
+                    y_min_band = min(ymins) if ymins else None
+                    y_max_band = max(ymaxs) if ymaxs else None
+                    logger.info(f"Banda de cabecera de ML detectada: Y=[{y_min_band}, {y_max_band}]")
+                else:
+                    logger.warning("MLHeaderDetector no detectó ninguna palabra de cabecera.")
+
+            except FileNotFoundError as e:
+                logger.error(f"Archivo de modelo de ML no encontrado: {e}. Volviendo al detector clásico.")
+                use_ml_detector = False
+            except ImportError as e:
+                logger.error(f"Fallo de importación para MLHeaderDetector, ¿faltan dependencias como pandas o joblib? Error: {e}. Volviendo al detector clásico.")
+                use_ml_detector = False
+            except Exception as e:
+                logger.error(f"Error inesperado al ejecutar MLHeaderDetector: {e}. Volviendo al detector clásico.", exc_info=True)
+                use_ml_detector = False
+
+        # Inicializar el detector clásico SIEMPRE (para fallback o uso directo)
+        if not use_ml_detector or not header_words or y_max_band is None:
+            logger.info("Usando HeaderDetector clásico para la detección de cabecera.")
+            
+            # Verificar que tenemos palabras clave
+            if not all_keywords_flat:
+                logger.warning("No se pudieron cargar palabras clave semánticas. Usando palabras clave por defecto.")
+                # Palabras clave por defecto para casos de emergencia
+                all_keywords_flat = [
+                    'CANTIDAD', 'CANT', 'QTY', 'UNIDADES', 'UNI',
+                    'DESCRIPCION', 'DESC', 'PRODUCTO', 'ARTICULO', 'ITEM',
+                    'PRECIO', 'P.U.', 'PU', 'PRECIO UNITARIO',
+                    'IMPORTE', 'TOTAL', 'SUBTOTAL', 'MONTO'
+                ]
+
+        # Crear el detector clásico
         self.header_detector = HeaderDetector(
             config=self.header_detector_config,
             header_keywords_list=all_keywords_flat,
             page_dimensions=page_dimensions
         )
-        header_words, y_min_band, y_max_band = self.header_detector.identify_header_band_and_words(
-            formed_lines=reconstructed_lines_by_engine.get('paddle_lines', []),
-            semantic_keywords=semantic_keywords  # Pasar el diccionario estructurado
-        )
+        
+        # Usar el detector clásico si no se detectó cabecera con ML
         if not header_words or y_max_band is None:
-            return self._build_error_response("error_no_header", "No se pudo detectar un encabezado de tabla confiable.")
-        table_end_keywords = self.header_detector_config.get('table_end_keywords',[])
-        y_min_table_end = page_dimensions['height']
-        lines_after_header = [line for line in reconstructed_lines_by_engine.get('paddle_lines', []) if get_line_y_coordinate(line) > y_max_band]
+            logger.info("Intentando detección de cabecera con HeaderDetector clásico...")
+            header_words, y_min_band, y_max_band = self.header_detector.identify_header_band_and_words(
+                formed_lines=lines_for_header_detection,
+                semantic_keywords=semantic_keywords
+            )
+        
+        if not header_words or y_max_band is None:
+            logger.error("No se pudo detectar un encabezado de tabla confiable con ningún método")
+            return self._build_error_response("error_no_header", "No se pudo detectar un encabezado de tabla confiable con ningún método.")
+        
+        # --- Búsqueda de límites de tabla ---
+        table_end_keywords = self.header_detector_config.get('table_end_keywords', [])
+        y_min_table_end = page_dimensions.get('height', 0)
+        document_grand_total = None
+
+        lines_after_header = [line for line in lines_for_header_detection if get_line_y_coordinate(line) > y_max_band]
+        
         for line in sorted(lines_after_header, key=lambda l: get_line_y_coordinate(l)):
-            if any(keyword.upper() in line.get("text_raw", "").upper() for keyword in table_end_keywords):
+            line_text_raw = line.get("text_raw", "")
+            if any(keyword.upper() in line_text_raw.upper() for keyword in table_end_keywords):
                 polygon = line.get('polygon_line_bbox')
                 if polygon:
                     try:
                         _, ymin_line, _, _ = get_polygon_bounds(polygon)
                         y_min_table_end = ymin_line
-                        logger.info(f"Palabra clave de fin encontrada: '{line.get('text_raw', '')}'. Límite inferior de tabla establecido en Y={y_min_table_end:.2f}")
+                        
+                        numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text_raw)
+                        if numbers:
+                            try:
+                                grand_total_str = numbers[-1].replace(',', '')
+                                document_grand_total = float(grand_total_str)
+                            except (ValueError, IndexError):
+                                pass
                         break
-                    except Exception as e:
-                        logger.warning(f"Error obteniendo límites de línea con palabra clave: {e}")
+                    except Exception:
                         y_min_table_end = get_line_y_coordinate(line)
                         break
                 else:
                     y_min_table_end = get_line_y_coordinate(line)
                     break
-        table_body_tesseract_lines = [line for line in reconstructed_lines_by_engine.get('tesseract_lines', []) if y_max_band < get_line_y_coordinate(line) < y_min_table_end]
-        table_body_paddle_lines = [line for line in reconstructed_lines_by_engine.get('paddle_lines', []) if y_max_band < get_line_y_coordinate(line) < y_min_table_end]
-        lines_for_structuring = table_body_paddle_lines
-        tesseract_fallback_used = False
-        if not lines_for_structuring and table_body_tesseract_lines:
-            logger.warning("No se encontraron líneas de tabla de PaddleOCR. Usando Tesseract como fallback.")
-            lines_for_structuring = table_body_tesseract_lines
-            tesseract_fallback_used = True
+        
+        # --- Extracción del cuerpo de tabla ---
+        table_body_tesseract_lines = [line for line in cleaned_lines.get('tesseract_lines', []) if y_max_band < get_line_y_coordinate(line) < y_min_table_end]
+        table_body_paddle_lines = [line for line in cleaned_lines.get('paddle_lines', []) if y_max_band < get_line_y_coordinate(line) < y_min_table_end]
+        lines_for_structuring = table_body_paddle_lines or table_body_tesseract_lines
+        tesseract_fallback_used = bool(not table_body_paddle_lines and table_body_tesseract_lines)
+
+        # --- Estructuración geométrica ---
+        self.geometric_structurer = GeometricTableStructurer(config=self.geometric_structurer_config)
+        final_matrix = self.geometric_structurer.structure_table(
+            lines_table_only=lines_for_structuring,
+            main_header_line_elements=header_words
+        )
+        
+        # --- Búsqueda de totales ---
+        document_totals = self._search_document_totals_and_quantities(
+            all_lines=cleaned_lines.get('paddle_lines', []),
+            used_lines=lines_for_structuring,
+            y_max_band=y_max_band,
+            y_min_table_end=y_min_table_end,
+            page_dimensions=page_dimensions
+        )
+        
+        # --- Guardar datos intermedios ---
         self.json_output_handler.save(
             {
                 "header_band_y_coordinates": [y_min_band, y_max_band],
                 "table_end_y_coordinate": y_min_table_end,
                 "tesseract_table_body_lines": table_body_tesseract_lines,
-                "paddle_table_body_lines": table_body_paddle_lines
+                "paddle_table_body_lines": table_body_paddle_lines,
             },
             output_dir,
             f"{base_name}_table_body_lines.json",
             output_type="table_body_lines"
         )
         
-        logger.info("Paso 3: Estructuración geométrica usando GeometricTableStructurer con cortes por valles.")
-        self.geometric_structurer = GeometricTableStructurer(config=self.geometric_structurer_config)
-        
-        # Generar cortes por valles para cada línea
-        pixel_gap_cuts_per_line = []
-        for line in lines_for_structuring:
-            binary_line_2d = self._binarize_line(line, page_dimensions['width'])
-            cuts_x = self._find_column_boundaries_by_spaces(binary_line_2d, len(header_words))
-            pixel_gap_cuts_per_line.append(cuts_x)
-        
-        # Usar GeometricTableStructurer con los cortes calculados
-        final_matrix = self.geometric_structurer.structure_table_from_pixel_gaps(
-            lines_table_only=lines_for_structuring,
-            main_header_line_elements=header_words,
-            pixel_gap_cuts_per_line=pixel_gap_cuts_per_line
-        )
-        
-        logger.info(f"Matriz final obtenida usando GeometricTableStructurer: {len(final_matrix)} filas.")
-        self._save_simplified_matrix(final_matrix, header_words, base_name, output_dir, "final_matrix_only")
         final_payload = {
             "document_id": base_name,
             "status": "success_structured_binary_cuts",
@@ -311,10 +241,159 @@ class TableExtractorCoordinator:
             "outputs": {
                 "table_matrix": final_matrix,
                 "header_elements": header_words,
+                "document_totals": document_totals
             }
         }
+        
         if tesseract_fallback_used:
             final_payload.setdefault("summary", {})["warning"] = (
                 "PaddleOCR no devolvió líneas; se usó Tesseract como fallback."
             )
+        
+        if document_grand_total:
+            final_payload["outputs"]["document_grand_total"] = document_grand_total
+        
+        # Generar datos para entrenamiento de ML
+        ml_training_data = prepare_header_ml_data(
+            base_name=base_name,
+            page_dimensions=page_dimensions,
+            all_lines=lines_for_header_detection,
+            header_words=header_words
+        )
+        if ml_training_data:
+            final_payload.setdefault("outputs", {})["ml_training_data"] = ml_training_data
+            # Guardar el JSON de entrenamiento de ML si está habilitado
+            self.json_output_handler.save(
+                data=ml_training_data,
+                output_dir=output_dir,
+                file_name_with_extension=f"{base_name}_ml_training_data.json",
+                output_type="ml_training_data"
+            )
+
         return final_payload
+
+    def _search_document_totals_and_quantities(
+        self,
+        all_lines: List[Dict],
+        used_lines: List[Dict],
+        y_max_band: float,
+        y_min_table_end: float,
+        page_dimensions: Dict
+    ) -> Dict[str, Any]:
+        used_line_ids = {line.get('line_id') for line in used_lines}
+        remaining_lines = []
+        
+        for line in all_lines:
+            line_y = get_line_y_coordinate(line)
+            line_id = line.get('line_id')
+            
+            if line_id not in used_line_ids:
+                remaining_lines.append(line)
+            elif line_y >= y_min_table_end:
+                remaining_lines.append(line)
+        
+        total_keywords = self.header_detector_config.get('total_words', [])
+        quantity_keywords = self.header_detector_config.get('items_qty', [])
+        
+        found_totals = []
+        found_quantities = []
+        
+        for line in remaining_lines:
+            line_text = line.get("text_raw", "")
+            line_text_upper = line_text.upper()
+            y_coord = get_line_y_coordinate(line)
+            
+            # Buscar totales monetarios
+            for keyword in total_keywords:
+                fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
+                if fuzzy_ratio >= 70:
+                    numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text)
+                    if numbers:
+                        try:
+                            amount = float(numbers[-1].replace(',', ''))
+                            found_totals.append({
+                                'type': 'monetary_total',
+                                'keyword_found': keyword,
+                                'fuzzy_match_score': fuzzy_ratio,
+                                'amount': amount,
+                                'line_text': line_text,
+                                'line_y_coordinate': y_coord
+                            })
+                            break
+                        except (ValueError, IndexError):
+                            pass
+            
+            # Buscar cantidad de artículos
+            for keyword in quantity_keywords:
+                fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
+                if fuzzy_ratio >= 75:
+                    numbers = re.findall(r'\d+', line_text)
+                    if numbers:
+                        try:
+                            quantity = int(numbers[-1])
+                            found_quantities.append({
+                                'type': 'item_quantity',
+                                'keyword_found': keyword,
+                                'fuzzy_match_score': fuzzy_ratio,
+                                'quantity': quantity,
+                                'line_text': line_text,
+                                'line_y_coordinate': y_coord
+                            })
+                            break
+                        except (ValueError, IndexError):
+                            pass
+        
+        return {
+            'monetary_totals': found_totals,
+            'item_quantities': found_quantities,
+            'summary': {
+                'total_lines_analyzed': len(remaining_lines),
+                'monetary_totals_found': len(found_totals),
+                'item_quantities_found': len(found_quantities)
+            }
+        }
+
+    def _build_error_response(self, code: str, message: str) -> Dict[str, Any]:
+        """
+        Construye una respuesta de error estandarizada.
+        """
+        return {"status": code, "message": message, "outputs": {}}
+
+    def _load_semantic_keywords(self) -> Dict[str, List[str]]:
+        semantic_keywords_path = self.header_detector_config.get('table_header_keywords_list', {}).get('semantic_keywords_path')
+        if not semantic_keywords_path:
+            logger.error("No se encontró la ruta al archivo de palabras clave semánticas")
+            return {}
+        if not os.path.isabs(semantic_keywords_path):
+            semantic_keywords_path = os.path.join(self.project_root, semantic_keywords_path)
+        try:
+            with open(semantic_keywords_path, 'r', encoding='utf-8') as f:
+                semantic_keywords = yaml.safe_load(f)
+            if not isinstance(semantic_keywords, dict):
+                logger.error("El archivo de palabras clave semánticas no tiene el formato esperado")
+                return {}
+            
+            processed_keywords = {}
+            for category, keywords in semantic_keywords.items():
+                if isinstance(keywords, list):
+                    processed_keywords[category.lower()] = [str(kw).upper().strip() for kw in keywords if kw]
+            
+            return processed_keywords
+        except Exception as e:
+            logger.error(f"Error cargando palabras clave semánticas: {e}")
+            return {}
+
+    def _run_geometric_structuring(self, lines_for_structuring, header_words, page_dimensions):
+        """
+        Wrapper para estructuración geométrica, útil para pruebas o uso modular.
+        """
+        self.geometric_structurer = GeometricTableStructurer(config=self.geometric_structurer_config)
+        result = self.geometric_structurer.structure_table(
+            lines_table_only=lines_for_structuring,
+            main_header_line_elements=header_words
+        )
+        return result
+
+
+if __name__ == '__main__':
+    pass

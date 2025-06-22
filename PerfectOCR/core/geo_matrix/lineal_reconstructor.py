@@ -1,4 +1,4 @@
-# PerfectOCR/core/lineal_finder/line_reconstructor.py
+# PerfectOCR/core/geo_matrix/line_reconstructor.py
 import logging
 import math
 import numpy as np
@@ -238,10 +238,7 @@ class LineReconstructor:
         for el in group_sorted:
             clean_el = el.copy()
             clean_el.pop('shapely_polygon', None)
-            # clean_el.pop('original_ocr_data', None) # Considerar mantenerlo si LineMerger lo necesita
             output_elements.append(clean_el)
-
-        logger.debug(f"[LineReconstructor] Línea {line_idx}: '{text}' | Palabras: {len(group_sorted)} | Confianza promedio: {avg_confidence:.2f}")
 
         return {
             'line_id': f"{engine_name}_line_{line_idx:04d}", 

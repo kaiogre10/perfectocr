@@ -96,11 +96,14 @@ spatial_analyzer:
     min_line_length_ratio: 0.05          # Descarta trazos demasiado cortos
     expansion_factor: 3.0               # Cuánto expandir la máscara verticalmente
 
-  # (Se eliminó table_region_validation_rules: ahora no se requiere)
-
 ocr:
-  default_folder_origin: "unknown_mode" # For metadata if not otherwise specified
-  default_image_pil_mode: "unknown_mode"  # For metadata if not otherwise specified
+  enabled_engines:
+    tesseract: false    # Cambiar a false para deshabilitar Tesseract
+    paddleocr: true    # Cambiar a false para deshabilitar PaddleOCR
+  
+  default_folder_origin: "unknown_mode"
+  default_image_pil_mode: "unknown_mode"
+  
   tesseract:
     cmd_path: "C:/Program Files/Tesseract-OCR/tesseract.exe"
     lang: "spa+eng"
@@ -130,32 +133,147 @@ table_extractor:
     vertical_overlap_threshold: 0.4
   
   header_detector_config:
+    use_ml_detector: false
+    ml_model_path: "models/ml/header_classifier.pkl"
     table_header_keywords_list:
       semantic_keywords_path: "config/semantic_keywords.yaml"
 
-    table_end_keywords: [ 
-        "TOTAL", "SUBTOTAL", "SUMA TOTAL", "OBSERVACIONES", "VALOR TOTAL",
-        "GRACIAS POR SU COMPRA", "PAGO CON", "EFECTIVO", "CAMBIO",
-        "NO, DE ARTICULOS", "NO. DE ARTICULOS", "TOTAL DE ARTICULOS",
-        "FIRMA", "AUTORIZADO POR", 'NO. DE ARTICULOS:',
-        
-        # Nuevas variaciones de TOTAL
-        "TOTAL A PAGAR", "TOTAL PAGADO", "TOTAL DE LA COMPRA",
-        "TOTAL DE VENTA", "TOTAL DE ARTÍCULOS", "TOTAL DE ITEMS",
-        "TOTAL DE PRODUCTOS", "TOTAL DE MERCANCÍA",
-        "TOTAL DE LA TRANSACCIÓN", "TOTAL DE LA OPERACIÓN",
-        
-        # Palabras clave de cierre de ticket
-        "GRACIAS POR SU PREFERENCIA", "VUELVA PRONTO",
-        "ATENDIDO POR", "CAJERO", "FECHA DE EMISIÓN",
-        "HORA DE EMISIÓN", "FOLIO", "TICKET", "RECIBO",
-        
-        # Palabras clave de pago
-        "PAGO EN EFECTIVO", "PAGO CON TARJETA",
-        "PAGO CON TRANSFERENCIA", "MONTO RECIBIDO",
-        "DEVOLUCIÓN"
-      ]
-      
+    table_end_keywords:
+      - "TOTAL"
+      - "SUBTOTAL"
+      - "SUMA TOTAL"
+      - "OBSERVACIONES"
+      - "VALOR TOTAL"
+      - "GRACIAS POR SU COMPRA"
+      - "PAGO CON"
+      - "EFECTIVO"
+      - "CAMBIO"
+      - "NO, DE ARTICULOS"
+      - "NO. DE ARTICULOS"
+      - "TOTAL DE ARTICULOS"
+      - "FIRMA"
+      - "AUTORIZADO POR"
+      - "NO. DE ARTICULOS:"
+      - "TOTAL A PAGAR"
+      - "TOTAL PAGADO"
+      - "TOTAL DE LA COMPRA"
+      - "TOTAL DE VENTA"
+      - "TOTAL DE ARTÍCULOS"
+      - "TOTAL DE ITEMS"
+      - "TOTAL DE PRODUCTOS"
+      - "TOTAL DE MERCANCÍA"
+      - "TOTAL DE LA TRANSACCIÓN"
+      - "TOTAL DE LA OPERACIÓN"
+      - "GRACIAS POR SU PREFERENCIA"
+      - "VUELVA PRONTO"
+      - "ATENDIDO POR"
+      - "CAJERO"
+      - "FECHA DE EMISIÓN"
+      - "HORA DE EMISIÓN"
+      - "FOLIO"
+      - "TICKET"
+      - "RECIBO"
+      - "PAGO EN EFECTIVO"
+      - "PAGO CON TARJETA"
+      - "PAGO CON TRANSFERENCIA"
+      - "MONTO RECIBIDO"
+      - "DEVOLUCIÓN"
+
+    total_words:
+      - "TOTAL A PAGAR"
+      - "TOTAL PAGADO"
+      - "TOTAL DE LA COMPRA"
+      - "TOTAL DE VENTA"
+      - "TOTAL DE LA TRANSACCIÓN"
+      - "TOTAL DE LA OPERACIÓN"
+      - "SUBTOTAL"
+      - "SUMA TOTAL"
+      - "VALOR TOTAL"
+      - "SUB-TOTAL"
+      - "IMPUESTO"
+      - "TOTAL"
+
+    items_qty:
+      - "NO, DE ARTICULOS"
+      - "NO. DE ARTICULOS"
+      - "ARTICULOS"
+      - "ARTÍCULOS"
+      - "NO. DE ARTICULOS:"
+      - "CANTIDAD DE ARTICULOS"
+      - "CANTIDAD DE ARTÍCULOS"
+      - "UNIDADES"
+      - "UNIDAD"
+      - "UNIDADES ADQUIRIDAS"
+      - "UNIDADES VENDIDAS"
+      - "UNIDADES COMPRADAS"
+      - "UNIDADES ENTREGADAS"
+      - "UNIDADES SOLICITADAS"
+      - "ITEMS"
+      - "ITEM"
+      - "NÚMERO DE ITEMS"
+      - "NÚMERO DE ARTÍCULOS"
+      - "NÚMERO DE PRODUCTOS"
+      - "NÚMERO DE PIEZAS"
+      - "NÚMERO DE UNIDADES"
+      - "PRODUCTOS"
+      - "PRODUCTO"
+      - "PIEZAS"
+      - "PIEZA"
+      - "CANTIDAD"
+      - "CANT."
+      - "CANT"
+      - "CANTIDAD ADQUIRIDA"
+      - "CANTIDAD VENDIDA"
+      - "CANTIDAD COMPRADA"
+      - "MERCANCÍA"
+      - "MERCANCIA"
+      - "MERCANCIAS"
+      - "CANTIDAD DE PRODUCTOS"
+      - "CANTIDAD DE PIEZAS"
+      - "CANTIDAD DE UNIDADES"
+      - "CANTIDAD ENTREGADA"
+      - "CANTIDAD DE PRODUCTOS ENTREGADOS"
+      - "CANTIDAD DE MERCANCÍA ENTREGADA"
+      - "CANTIDAD DE ITEMS ENTREGADOS"
+      - "CANTIDAD DE ARTÍCULOS ENTREGADOS"
+      - "CANTIDAD DE PIEZAS ENTREGADAS"
+      - "CANTIDAD DE PZ ENTREGADAS"
+      - "CANTIDAD SOLICITADA"
+      - "CANTIDAD DE PRODUCTOS SOLICITADOS"
+      - "CANTIDAD DE MERCANCÍA SOLICITADA"
+      - "CANTIDAD DE ITEMS SOLICITADOS"
+      - "CANTIDAD DE ARTÍCULOS SOLICITADOS"
+      - "CANTIDAD DE PIEZAS SOLICITADAS"
+      - "CANTIDAD DE PZ SOLICITADAS"
+      - "CANTIDAD PEDIDA"
+      - "CANTIDAD DE PRODUCTOS PEDIDOS"
+      - "CANTIDAD DE MERCANCÍA PEDIDA"
+      - "CANTIDAD DE ITEMS PEDIDOS"
+      - "CANTIDAD DE ARTÍCULOS PEDIDOS"
+      - "CANTIDAD DE PIEZAS PEDIDAS"
+      - "CANTIDAD DE PZ PEDIDAS"
+      - "CANTIDAD RECIBIDA"
+      - "CANTIDAD DE PRODUCTOS RECIBIDOS"
+      - "CANTIDAD DE MERCANCÍA RECIBIDA"
+      - "CANTIDAD DE ITEMS RECIBIDOS"
+      - "CANTIDAD DE ARTÍCULOS RECIBIDOS"
+      - "CANTIDAD DE PIEZAS RECIBIDAS"
+      - "CANTIDAD DE PZ RECIBIDAS"
+      - "CANTIDAD DESPACHADA"
+      - "CANTIDAD DE PRODUCTOS DESPACHADOS"
+      - "CANTIDAD DE MERCANCÍA DESPACHADA"
+      - "CANTIDAD DE ITEMS DESPACHADOS"
+      - "CANTIDAD DE ARTÍCULOS DESPACHADOS"
+      - "CANTIDAD DE PIEZAS DESPACHADAS"
+      - "CANTIDAD DE PZ DESPACHADAS"
+      - "CANTIDAD ENVIADA"
+      - "CANTIDAD DE PRODUCTOS ENVIADOS"
+      - "CANTIDAD DE MERCANCÍA ENVIADA"
+      - "CANTIDAD DE ITEMS ENVIADOS"
+      - "CANTIDAD DE ARTÍCULOS ENVIADOS"
+      - "CANTIDAD DE PIEZAS ENVIADAS"
+      - "CANTIDAD DE PZ ENVIADAS"
+
     header_detection_fuzzy_min_ratio: 85.0
     header_min_y_ratio: 0.05 # Min Y position of header relative to page height (0.0-1.0)
     header_max_y_ratio: 0.75 # Max Y position of header relative to page height (0.0-1.0)
@@ -164,15 +282,13 @@ table_extractor:
     max_header_line_gap_factor: 2.50 # Multiplier of avg line height for max gap between header lines
     min_line_confidence_for_header: 70.00 # Min avg confidence of a line to be considered header
     default_line_height_for_gap: 20.00 # Fallback if dynamic line height can't be computed
-
-  geometric_structurer_config:
-    {}
-
-  max_validation_config:
-    enabled: true
-    quantitative_whitelist: ["N/A", "S/D", "-", "", "n/a", "N.A.", "0", "0.00"]
-    reassignment_enabled: true
-    max_vertical_distance_for_reassignment: 30.0
+    
+text_cleaning:
+  enabled: true
+  low_confidence_threshold: 95.0
+  use_embeddings: true
+  embedding_model: "paraphrase-multilingual-MiniLM-L12-v2"
+  anomaly_threshold: 0.4
 
 postprocessing:
   text_correction:
@@ -207,11 +323,17 @@ postprocessing:
 
 output_config:
   enabled_outputs:
-    ocr_raw: false
-    reconstructed_lines: false
-    structured_table: false
-    semantically_corrected_matrix: true
-    visual_output: false
+    ocr_raw: true                        # Resultados directos del OCR
+    reconstructed_lines: true            # Líneas reconstruidas
+    table_body_lines: true            # Líneas de texto de tabla 
+    structured_table: true               # Output de geo_matrix
+    semantically_corrected_matrix: true  # Matriz del semantic corrector
+    semantic_consistency_matrix: true   # Matriz después de la corrección de consistencia semántica
+    math_max_matrix: true                # Matriz final después de math_max
+    visual_output: false                 # No es necesaria
+    ml_training_data: true              # Datos para ML
+    debug_semantic_matrix: true          # Para depuración
+    ground_truth_excel: true             # Excel consolidado
 
 batch_processing:
   small_batch_limit: 5

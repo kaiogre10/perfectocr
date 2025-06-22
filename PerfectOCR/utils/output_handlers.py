@@ -32,10 +32,11 @@ class JsonOutputHandler:
         
     def save(self, data: Dict[str, Any], output_dir: str, file_name_with_extension: str, output_type: str = None) -> Optional[str]:
         """
-        Guarda un diccionario de datos en un archivo JSON si el tipo de output está habilitado.
-        
+        Guarda datos en formato JSON en un archivo.
+        Crea el directorio de salida si no existe.
+
         Args:
-            data: El diccionario a guardar.
+            data: Los datos a guardar en formato JSON.
             output_dir: El directorio donde se guardará el archivo.
             file_name_with_extension: El nombre del archivo.
             output_type: El tipo de output (e.g., 'ocr_raw', 'reconstructed_lines', etc.)
@@ -44,6 +45,12 @@ class JsonOutputHandler:
             logger.debug(f"Output {output_type} está deshabilitado, omitiendo guardado.")
             return None
             
+        # Validar que output_dir no esté vacío
+        if not output_dir or output_dir.strip() == "":
+            logger.error("Error: output_dir está vacío o es None")
+            return None
+            
+        output_path = None
         try:
             os.makedirs(output_dir, exist_ok=True)
             output_path = os.path.join(output_dir, file_name_with_extension)
@@ -52,7 +59,11 @@ class JsonOutputHandler:
             logger.info(f"Datos JSON guardados en: {output_path}")
             return output_path
         except Exception as e:
-            logger.error(f"Error guardando JSON en {output_path}: {e}", exc_info=True)
+            error_msg = f"Error guardando JSON"
+            if output_path:
+                error_msg += f" en {output_path}"
+            error_msg += f": {e}"
+            logger.error(error_msg, exc_info=True)
             return None
             
 class TextOutputHandler:
