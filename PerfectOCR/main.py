@@ -309,7 +309,14 @@ class PerfectOCRWorkflow:
         )
 
         # FASE 5.5: Limpieza de texto
-        cleaned_lines = self.text_cleaning_coordinator.clean_reconstructed_lines(reconstructed_lines)
+        output_dir = output_dir_override if output_dir_override else os.path.join(self.project_root, "output")
+        cleaned_lines, corrections_count = self.text_cleaning_coordinator.clean_reconstructed_lines(
+            reconstructed_lines_by_engine=reconstructed_lines,
+            output_dir=output_dir,
+            doc_id=base_name
+        )
+        if corrections_count > 0:
+            logger.info(f"Limpieza de texto completada: {corrections_count} líneas contenían correcciones.")
 
         # FASE 6: Extracción de tabla usando líneas limpias
         table_extraction_payload = self.table_extractor_coordinator.extract_table_from_cleaned_lines(
@@ -318,14 +325,7 @@ class PerfectOCRWorkflow:
             output_dir=current_output_dir
         )
         
-        # Cambiar la validación para aceptar cualquier status que empiece con "success"
-        if not table_extraction_payload.get('status', '').startswith('success'):
-            logger.error(f"Fallo en la extracción de tabla para {original_file_name}. Mensaje: {table_extraction_payload.get('message')}")
-            final_response = self._build_error_response("error_table_extraction", original_file_name, table_extraction_payload.get('message'), "table_extraction")
-            return final_response
-            
-        # FASE 7: POST-PROCESAMIENTO (CORRECCIÓN SEMÁNTICA)
-        logger.info("Fase 7: Iniciando post-procesamiento de la tabla.")
+        # Ahora sí, pásalo al postprocesamiento
         semantically_corrected_payload = self.postprocessing_coordinator.correct_table_structure(
             extraction_payload=table_extraction_payload
         )
@@ -337,7 +337,8 @@ class PerfectOCRWorkflow:
                 header_elements=semantically_corrected_payload.get('outputs', {}).get('header_elements', []),
                 base_name=base_name,
                 output_dir=current_output_dir,
-                suffix="semantically_corrected_matrix"
+                suffix="semantically_corrected_matrix",
+                payload=semantically_corrected_payload
             )
 
         # Guardar la matriz después de la corrección de consistencia semántica
@@ -347,7 +348,8 @@ class PerfectOCRWorkflow:
                 header_elements=semantically_corrected_payload.get('outputs', {}).get('header_elements', []),
                 base_name=base_name,
                 output_dir=current_output_dir,
-                suffix="semantic_consistency_matrix"
+                suffix="semantic_consistency_matrix",
+                payload=semantically_corrected_payload
             )
 
         # Guardar la matriz final después de math_max
@@ -357,7 +359,8 @@ class PerfectOCRWorkflow:
                 header_elements=semantically_corrected_payload.get('outputs', {}).get('header_elements', []),
                 base_name=base_name,
                 output_dir=current_output_dir,
-                suffix="math_max_matrix"
+                suffix="math_max_matrix",
+                payload=semantically_corrected_payload
             )
 
         # Usar el payload corregido para la respuesta final
@@ -457,27 +460,43 @@ class PerfectOCRWorkflow:
         summary = {"table_extraction_status": status, "message": table_payload.get("message")}
         return {"document_id": filename, "status_overall_workflow": final_status, "outputs": outputs, "summary": summary}
 
-    def _save_simplified_matrix(self, matrix_data: List[List[Dict]], header_elements: List[Dict], base_name: str, output_dir: str, suffix: str):
+    def _save_simplified_matrix(self, matrix_data: List[List[Dict]], header_elements: List[Dict], base_name: str, output_dir: str, suffix: str, payload: Optional[Dict] = None):
         """Guarda una versión simplificada de solo texto de una matriz estructurada."""
         if not matrix_data:
             return
 
         headers = [h.get("text_raw", "") for h in header_elements]
-        semantic_types = [h.get("semantic_type", "descriptivo") for h in header_elements]
         
-        # NUEVA LÓGICA: Detectar si matrix_data contiene diccionarios o strings
+        # LÓGICA FUSIONADA: Usar semantic_math_types si está disponible, sino semantic_types básicos
+        if suffix == "math_max_matrix" and payload:
+            semantic_math_types = payload.get('outputs', {}).get('semantic_math_types')
+            if semantic_math_types:
+                semantic_types = semantic_math_types  # ← REEMPLAZAR directamente
+            else:
+                semantic_types = [h.get("semantic_type", "descriptivo") for h in header_elements]
+        else:
+            semantic_types = [h.get("semantic_type", "descriptivo") for h in header_elements]
+        
+        # Detectar si matrix_data contiene diccionarios o strings
         if matrix_data and matrix_data[0] and isinstance(matrix_data[0][0], dict):
-            # Formato original: Lista de listas de diccionarios
             matrix_texts = [[cell.get("cell_text", "") for cell in row] for row in matrix_data]
         else:
-            # Formato nuevo: Lista de listas de strings
             matrix_texts = matrix_data
 
-        simplified_dict = {
-            "headers": headers,
-            "semantic_types": semantic_types,
-            "matrix": matrix_texts
-        }
+        # Construir el diccionario en el orden deseado
+        if suffix == "math_max_matrix":
+            simplified_dict = {
+                "headers": headers,
+                "semantic_types": semantic_types,
+                "semantic_format": "math_assigned",  # ← Aquí, en el orden correcto
+                "matrix": matrix_texts
+            }
+        else:
+            simplified_dict = {
+                "headers": headers,
+                "semantic_types": semantic_types,
+                "matrix": matrix_texts
+            }
 
         output_filename = f"{base_name}_{suffix}.json"
         output_path = os.path.join(output_dir, output_filename)
@@ -489,7 +508,6 @@ class PerfectOCRWorkflow:
             logger.error(f"Error guardando la matriz simplificada de depuración en {output_path}: {e}")
 
         if suffix == "semantically_corrected_matrix":
-            # Solo actualizar Excel si está habilitado en la configuración
             if self.output_config.get('enabled_outputs', {}).get('ground_truth_excel', False):
                 self._update_excel_with_matrix(
                     document_id=base_name,

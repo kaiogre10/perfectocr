@@ -3,6 +3,7 @@ import logging
 import os
 import yaml
 import json
+import re
 from typing import Dict, Any, Optional, List
 from core.geo_matrix.geometric_table_structurer import GeometricTableStructurer
 from core.geo_matrix.lineal_reconstructor import LineReconstructor
@@ -11,7 +12,6 @@ from utils.output_handlers import JsonOutputHandler
 from utils.spatial_utils import get_line_y_coordinate
 from utils.geometric import get_polygon_bounds
 from utils.data_preparation import prepare_header_ml_data
-import re
 from concurrent.futures import ThreadPoolExecutor
 from rapidfuzz import process, fuzz
 
@@ -65,6 +65,8 @@ class TableExtractorCoordinator:
         Recibe las líneas ya limpias y realiza la detección de cabecera, delimitación y estructuración de la tabla.
         Permite cambiar entre el detector de cabeceras de ML y el clásico.
         """
+        paddle_lines_for_log = cleaned_lines.get('paddle_lines', [])
+        #logger.info(f"Extrayendo tabla con {len(paddle_lines_for_log)} líneas de paddle. Primeras 5 líneas: {paddle_lines_for_log[:5]}")
         page_dimensions = cleaned_lines.get('page_dimensions', {})
         if not page_dimensions:
             for engine in ['paddle_lines', 'tesseract_lines']:
@@ -168,36 +170,11 @@ class TableExtractorCoordinator:
             logger.error("No se pudo detectar un encabezado de tabla confiable con ningún método")
             return self._build_error_response("error_no_header", "No se pudo detectar un encabezado de tabla confiable con ningún método.")
         
-        # --- Búsqueda de límites de tabla ---
-        table_end_keywords = self.header_detector_config.get('table_end_keywords', [])
-        y_min_table_end = page_dimensions.get('height', 0)
-        document_grand_total = None
-
-        lines_after_header = [line for line in lines_for_header_detection if get_line_y_coordinate(line) > y_max_band]
-        
-        for line in sorted(lines_after_header, key=lambda l: get_line_y_coordinate(l)):
-            line_text_raw = line.get("text_raw", "")
-            if any(keyword.upper() in line_text_raw.upper() for keyword in table_end_keywords):
-                polygon = line.get('polygon_line_bbox')
-                if polygon:
-                    try:
-                        _, ymin_line, _, _ = get_polygon_bounds(polygon)
-                        y_min_table_end = ymin_line
-                        
-                        numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text_raw)
-                        if numbers:
-                            try:
-                                grand_total_str = numbers[-1].replace(',', '')
-                                document_grand_total = float(grand_total_str)
-                            except (ValueError, IndexError):
-                                pass
-                        break
-                    except Exception:
-                        y_min_table_end = get_line_y_coordinate(line)
-                        break
-                else:
-                    y_min_table_end = get_line_y_coordinate(line)
-                    break
+        # --- Búsqueda de límites de tabla y total general ---
+        y_min_table_end, document_grand_total = self.header_detector.find_table_end_and_grand_total(
+            all_lines=lines_for_header_detection,
+            y_max_header=y_max_band
+        )
         
         # --- Extracción del cuerpo de tabla ---
         table_body_tesseract_lines = [line for line in cleaned_lines.get('tesseract_lines', []) if y_max_band < get_line_y_coordinate(line) < y_min_table_end]
@@ -212,13 +189,10 @@ class TableExtractorCoordinator:
             main_header_line_elements=header_words
         )
         
-        # --- Búsqueda de totales ---
-        document_totals = self._search_document_totals_and_quantities(
-            all_lines=cleaned_lines.get('paddle_lines', []),
-            used_lines=lines_for_structuring,
-            y_max_band=y_max_band,
-            y_min_table_end=y_min_table_end,
-            page_dimensions=page_dimensions
+        # --- Búsqueda de totales y cantidades ---
+        document_totals = self.header_detector.find_document_summary_elements(
+            all_lines=lines_for_header_detection,
+            table_body_lines=lines_for_structuring
         )
         
         # --- Guardar datos intermedios ---
@@ -272,87 +246,6 @@ class TableExtractorCoordinator:
 
         return final_payload
 
-    def _search_document_totals_and_quantities(
-        self,
-        all_lines: List[Dict],
-        used_lines: List[Dict],
-        y_max_band: float,
-        y_min_table_end: float,
-        page_dimensions: Dict
-    ) -> Dict[str, Any]:
-        used_line_ids = {line.get('line_id') for line in used_lines}
-        remaining_lines = []
-        
-        for line in all_lines:
-            line_y = get_line_y_coordinate(line)
-            line_id = line.get('line_id')
-            
-            if line_id not in used_line_ids:
-                remaining_lines.append(line)
-            elif line_y >= y_min_table_end:
-                remaining_lines.append(line)
-        
-        total_keywords = self.header_detector_config.get('total_words', [])
-        quantity_keywords = self.header_detector_config.get('items_qty', [])
-        
-        found_totals = []
-        found_quantities = []
-        
-        for line in remaining_lines:
-            line_text = line.get("text_raw", "")
-            line_text_upper = line_text.upper()
-            y_coord = get_line_y_coordinate(line)
-            
-            # Buscar totales monetarios
-            for keyword in total_keywords:
-                fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
-                if fuzzy_ratio >= 70:
-                    numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text)
-                    if numbers:
-                        try:
-                            amount = float(numbers[-1].replace(',', ''))
-                            found_totals.append({
-                                'type': 'monetary_total',
-                                'keyword_found': keyword,
-                                'fuzzy_match_score': fuzzy_ratio,
-                                'amount': amount,
-                                'line_text': line_text,
-                                'line_y_coordinate': y_coord
-                            })
-                            break
-                        except (ValueError, IndexError):
-                            pass
-            
-            # Buscar cantidad de artículos
-            for keyword in quantity_keywords:
-                fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
-                if fuzzy_ratio >= 75:
-                    numbers = re.findall(r'\d+', line_text)
-                    if numbers:
-                        try:
-                            quantity = int(numbers[-1])
-                            found_quantities.append({
-                                'type': 'item_quantity',
-                                'keyword_found': keyword,
-                                'fuzzy_match_score': fuzzy_ratio,
-                                'quantity': quantity,
-                                'line_text': line_text,
-                                'line_y_coordinate': y_coord
-                            })
-                            break
-                        except (ValueError, IndexError):
-                            pass
-        
-        return {
-            'monetary_totals': found_totals,
-            'item_quantities': found_quantities,
-            'summary': {
-                'total_lines_analyzed': len(remaining_lines),
-                'monetary_totals_found': len(found_totals),
-                'item_quantities_found': len(found_quantities)
-            }
-        }
-
     def _build_error_response(self, code: str, message: str) -> Dict[str, Any]:
         """
         Construye una respuesta de error estandarizada.
@@ -393,6 +286,26 @@ class TableExtractorCoordinator:
             main_header_line_elements=header_words
         )
         return result
+
+    def extract_table(self, doc_id, output_dir):
+        # Intentar cargar las líneas corregidas
+        cleaned_lines_path = os.path.join(output_dir, f"{doc_id}_cleaned_lines.json")
+        if os.path.exists(cleaned_lines_path):
+            with open(cleaned_lines_path, 'r', encoding='utf-8') as f:
+                lines_data = json.load(f)
+            logger.info(f"Usando líneas corregidas de: {cleaned_lines_path}")
+        else:
+            # Si no existen, usar las líneas reconstruidas originales
+            reconstructed_lines_path = os.path.join(output_dir, f"{doc_id}_reconstructed_lines.json")
+            with open(reconstructed_lines_path, 'r', encoding='utf-8') as f:
+                lines_data = json.load(f)
+            logger.info(f"Usando líneas reconstruidas originales de: {reconstructed_lines_path}")
+        
+        # Extraer solo las líneas de paddleocr o las relevantes
+        lines = lines_data.get("paddle_lines", [])
+        logger.info(f"Extrayendo tabla con {len(lines)} líneas. Primeras 5 líneas: {[l['text_raw'] for l in lines[:5]]}")
+        # Continuar con el resto del procesamiento
+        # ...
 
 
 if __name__ == '__main__':

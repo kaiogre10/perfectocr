@@ -153,41 +153,10 @@ class GeometricTableStructurer:
             for cell_idx in range(H):
                 cell_words = current_row_cells[cell_idx]['words']
                 if cell_words:
-                    current_row_cells[cell_idx]['cell_text'] = " ".join([w.get('text_raw', '') for w in cell_words]).strip()
+        # Usar texto corregido si existe, si no, el original
+                    current_row_cells[cell_idx]['cell_text'] = " ".join([w.get('text', w.get('text_raw', '')) for w in cell_words]).strip()
             
             table_matrix_T.append(current_row_cells)
 
         logger.info(f"GeometricTableStructurer: Successfully structured {len(table_matrix_T)} lines into {H} columns.")
-        return table_matrix_T
-
-    def structure_table_from_pixel_gaps(self, lines_table_only: List[Dict[str, Any]], main_header_line_elements: List[Dict[str, Any]], pixel_gap_cuts_per_line: List[List[int]]) -> List[List[Dict[str, Any]]]:
-        """
-        Segmenta cada línea en columnas usando cortes de píxeles (no coordenadas geométricas).
-        Args:
-            lines_table_only: lista de líneas (cada una con 'constituent_elements_ocr_data')
-            main_header_line_elements: lista de headers (para saber H)
-            pixel_gap_cuts_per_line: lista de listas de cortes_x (por línea)
-        Returns:
-            Matriz 2D de celdas (cada celda: {'words':[], 'cell_text':str})
-        """
-        H = len(main_header_line_elements)
-        table_matrix_T: List[List[Dict[str, Any]]] = []
-        for k, line_sk in enumerate(lines_table_only):
-            current_row_cells: List[Dict[str, Any]] = [{'words': [], 'cell_text': ''} for _ in range(H)]
-            words_pk = line_sk.get('constituent_elements_ocr_data', [])
-            words_pk = sorted(words_pk, key=lambda w: float(w.get('xmin', float('inf'))))
-            cuts_x = pixel_gap_cuts_per_line[k] if k < len(pixel_gap_cuts_per_line) else []
-            # Asignar palabras a columnas según cortes_x
-            col_idx = 0
-            for w in words_pk:
-                x_ini = float(w.get('xmin', 0))
-                # Buscar a qué columna pertenece
-                while col_idx < len(cuts_x) and x_ini >= cuts_x[col_idx]:
-                    col_idx += 1
-                current_row_cells[col_idx]['words'].append(w)
-            # Concatenar texto
-            for cell in current_row_cells:
-                if cell['words']:
-                    cell['cell_text'] = " ".join([w.get('text_raw', '') for w in cell['words']]).strip()
-            table_matrix_T.append(current_row_cells)
         return table_matrix_T

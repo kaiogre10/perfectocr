@@ -1,7 +1,9 @@
 # PerfectOCR/coordinators/text_cleaning_coordinator.py
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from core.text_cleaning.text_cleaner import TextCleaner
+import os
+from utils.output_handlers import JsonOutputHandler
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +16,7 @@ class TextCleaningCoordinator:
     def __init__(self, config: Dict):
         self.config = config
         self.text_cleaner = None
+        self.json_handler = JsonOutputHandler(config=self.config.get('output_config'))
         
         # Inicializar TextCleaner si está habilitado
         if self.config.get('enabled', True):
@@ -22,67 +25,79 @@ class TextCleaningCoordinator:
         else:
             logger.info("TextCleaningCoordinator inicializado sin TextCleaner (deshabilitado)")
     
-    def clean_reconstructed_lines(self, reconstructed_lines_by_engine: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
+    def clean_reconstructed_lines(self, reconstructed_lines_by_engine: Dict[str, List[Dict]], output_dir: str, doc_id: str) -> Tuple[Dict[str, List[Dict]], int]:
         """
-        Limpia todas las líneas reconstruidas de todos los motores OCR.
+        Limpia todas las líneas reconstruidas y sus elementos constituyentes.
         """
         if not self.text_cleaner:
             logger.warning("TextCleaner no disponible. Devolviendo líneas originales.")
-            return reconstructed_lines_by_engine
+            return reconstructed_lines_by_engine, 0
         
         logger.info("Iniciando limpieza de líneas reconstruidas...")
         
-        # PRESERVAR DIMENSIONES DE PÁGINA PRIMERO
         page_dimensions = reconstructed_lines_by_engine.get('page_dimensions', {})
-        if not page_dimensions:
-            # Intentar extraer de alguna línea
-            for engine in ['paddle_lines', 'tesseract_lines']:
-                if reconstructed_lines_by_engine.get(engine) and len(reconstructed_lines_by_engine[engine]) > 0:
-                    line = reconstructed_lines_by_engine[engine][0]
-                    if 'page_dimensions' in line:
-                        page_dimensions = line['page_dimensions']
-                        break
         
-        cleaned_lines_by_engine = {}
-        
-        if page_dimensions:
-            cleaned_lines_by_engine['page_dimensions'] = page_dimensions
+        cleaned_lines_by_engine = {'page_dimensions': page_dimensions} if page_dimensions else {}
         
         total_lines_processed = 0
         total_lines_cleaned = 0
         
         for engine_name, lines in reconstructed_lines_by_engine.items():
-            # Saltar claves que no son listas de líneas
             if engine_name == 'page_dimensions' or not isinstance(lines, list):
                 continue
                 
             cleaned_lines = []
             
             for line in lines:
-                # Obtener texto y confianza de la línea
-                text_raw = line.get('text_raw', '')
-                avg_confidence = line.get('avg_constituent_confidence', 100.0)
-                
-                # Aplicar limpieza de texto
-                cleaned_text = self.text_cleaner.clean_text(text_raw, avg_confidence)
-                
-                # Crear línea limpia manteniendo toda la estructura original
-                cleaned_line = line.copy()
-                cleaned_line['text_raw'] = cleaned_text
-                cleaned_line['text_original'] = text_raw  # Guardar texto original para referencia
-                
-                # Contar líneas procesadas y limpiadas
                 total_lines_processed += 1
-                if cleaned_text != text_raw:
+                cleaned_line = line.copy()
+                original_line_text = line.get('text_raw', '')
+                
+                # 1. Limpiar cada palabra/segmento individualmente
+                if 'constituent_elements_ocr_data' in cleaned_line:
+                    for word_element in cleaned_line['constituent_elements_ocr_data']:
+                        word_text_raw = word_element.get('text_raw', '')
+                        word_confidence = word_element.get('confidence', 100.0)
+                        
+                        # Aplicar limpieza a la palabra
+                        cleaned_word_text = self.text_cleaner.clean_text(word_text_raw, word_confidence)
+                        if cleaned_word_text != word_text_raw:
+                            word_element['text_original'] = word_text_raw
+                        word_element['text_raw'] = cleaned_word_text
+
+                # 2. Reconstruir el texto de la línea a partir de los constituyentes ya limpios
+                if 'constituent_elements_ocr_data' in cleaned_line:
+                    cleaned_line_text = " ".join(
+                        w.get('text_raw', '') for w in cleaned_line.get('constituent_elements_ocr_data', [])
+                    ).strip()
+                    cleaned_line['text_raw'] = cleaned_line_text
+                
+                # Marcar la línea como corregida si el texto final es diferente al original
+                if cleaned_line.get('text_raw') != original_line_text:
                     total_lines_cleaned += 1
+                    cleaned_line['text_original'] = original_line_text
                 
                 cleaned_lines.append(cleaned_line)
             
             cleaned_lines_by_engine[engine_name] = cleaned_lines
         
+        # Guardar las líneas corregidas en un archivo intermedio
+        cleaned_lines_path = os.path.join(output_dir, f"{doc_id}_cleaned_lines.json")
+        if self.config.get('output_config', {}).get('enabled_outputs', {}).get('cleaned_lines', True):
+            self.json_handler.save(
+                data=cleaned_lines_by_engine,
+                output_dir=output_dir,
+                file_name_with_extension=f"{doc_id}_cleaned_lines.json",
+                output_type="debug_cleaned_lines"
+            )
+            logger.info(f"Líneas corregidas guardadas en: {cleaned_lines_path}")
+        else:
+            logger.info("El guardado de cleaned_lines está desactivado por configuración.")
+        
         logger.info(f"Limpieza completada: {total_lines_cleaned}/{total_lines_processed} líneas corregidas")
-        return cleaned_lines_by_engine
+        return cleaned_lines_by_engine, total_lines_cleaned
     
+    # ... (El resto de los métodos de la clase permanecen sin cambios) ...
     def get_batch_corrections(self, reconstructed_lines_by_engine: Dict[str, List[Dict]]) -> List[Dict]:
         """
         Obtiene todas las correcciones propuestas para modo batch.
@@ -113,7 +128,7 @@ class TextCleaningCoordinator:
                         })
         
         return corrections
-    
+
     def apply_batch_corrections(self, reconstructed_lines_by_engine: Dict[str, List[Dict]], confirmed_corrections: List[Dict]) -> Dict[str, List[Dict]]:
         """
         Aplica las correcciones confirmadas del modo batch.

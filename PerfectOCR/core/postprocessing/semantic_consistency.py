@@ -36,9 +36,8 @@ class UnifiedSemanticConsistencyCorrector:
             return matrix, []
 
         corrected_matrix = [row[:] for row in matrix]
-        quarantined_data = [] # <--- LISTA DE CUARENTENA
+        quarantined_data = []  # Lista de cuarentena con seguimiento de origen
 
-        # Procesar columna por columna
         for col_idx, s_type in enumerate(semantic_types):
             logger.info(f"--- Analizando Columna {col_idx} (Tipo: {s_type}) ---")
             column_values = [row[col_idx] for row in corrected_matrix]
@@ -47,24 +46,39 @@ class UnifiedSemanticConsistencyCorrector:
                 profile = self._profile_quantitative_column(column_values)
                 if profile.get('is_valid'):
                     for row_idx, cell in enumerate(column_values):
-                        corrected_matrix[row_idx][col_idx] = self._correct_quantitative_cell(cell, profile, row_idx, col_idx)
+                        corrected_cell = self._correct_quantitative_cell(cell, profile, row_idx, col_idx)
+                        corrected_matrix[row_idx][col_idx] = corrected_cell
 
             elif s_type == 'descriptivo':
                 profile = self._profile_descriptive_column(column_values)
                 if profile.get('is_valid'):
                     for row_idx, cell in enumerate(column_values):
                         cleaned_cell, extracted_item = self._extract_from_descriptive_cell(cell, profile, row_idx, col_idx)
-                        if extracted_item:
-                            # Añadir el dato a la cuarentena con todo su contexto
+                        if extracted_item and self._is_embedding_score_low(extracted_item):  # Nuevo chequeo
                             quarantined_data.append({
                                 "value": extracted_item,
                                 "original_row": row_idx,
                                 "original_col": col_idx,
-                                "reason": "numeric_noise_in_descriptive_column"
+                                "reason": "ruido_grave",
+                                "status": "eliminado"  # Solo eliminar si embedding es bajísimo
                             })
-                            corrected_matrix[row_idx][col_idx] = cleaned_cell
+                        elif extracted_item:
+                            quarantined_data.append({
+                                "value": extracted_item,
+                                "original_row": row_idx,
+                                "original_col": col_idx,
+                                "reason": "potencial_ruido",
+                                "status": "en_cuarentena"  # Devolver si no se usa
+                            })
+                            corrected_matrix[row_idx][col_idx] = cleaned_cell if extracted_item else cell  # Devolver si no se usa
+                            
+        # Fase final: Devolver datos no usados a su origen
+        for item in quarantined_data[:]:  # Copia para no modificar durante iteración
+            if item["status"] == "en_cuarentena":  # Verificar si se usó en otro lugar
+                corrected_matrix[item["original_row"]][item["original_col"]] = item["value"]  # Devolver
+                quarantined_data.remove(item)  # Limpiar de la lista
         
-        logger.info(f"Corrección de consistencia completada. {len(quarantined_data)} datos puestos en cuarentena.")
+        logger.info(f"Corrección de consistencia completada. {len(quarantined_data)} datos en cuarentena final.")
         return corrected_matrix, quarantined_data
 
     # --- Métodos para Columnas Cuantitativas ---
@@ -132,15 +146,31 @@ class UnifiedSemanticConsistencyCorrector:
         match = re.search(r'^(.*?)(\s+(\d{1,}[\.,`\']\d{2}))$', cell)
         if match:
             text_part = match.group(1).strip()
-            noise_number = match.group(2).strip()
+            potential_noise = match.group(2).strip()
             
-            # Usar embedding_manager para calcular similitud
-            text_embedding = embedding_manager.encode([text_part], convert_to_tensor=True)
-            from sentence_transformers.util import cos_sim
-            similarity = cos_sim(text_embedding, profile['centroid'])[0][0].item()
-
-            if similarity > self.descriptive_noise_similarity_threshold:
-                logger.info(f"    Extracción (Cuarentena) en [{row_idx},{col_idx}]: Número '{noise_number}' extraído de '{cell}'. Similitud del texto: {similarity:.2f}")
-                return text_part, noise_number
+            # Añadir verificación de estructura: Comparar con perfil de columna
+            if self._has_anomalous_structure(potential_noise, profile):
+                return text_part, potential_noise  # Marcar para cuarentena
         
         return cell, None
+
+    def _has_anomalous_structure(self, number_str: str, profile: Dict) -> bool:
+        # Verificar si el número tiene una estructura diferente al perfil de la columna
+        try:
+            num_value = float(re.sub(r'[^\d.]', '', number_str))  # Limpiar y convertir
+            column_mean = profile.get('mean', 0)
+            column_std = profile.get('std', 1)
+            z_score = abs(num_value - column_mean) / column_std if column_std > 0 else 0
+            return z_score > 3.0  # Umbral alto para anomalías, como en tu punto 4
+        except ValueError:
+            return False  # No es un número válido, no es anómalo aquí
+
+    def _is_embedding_score_low(self, text: str) -> bool:
+        from utils.embedding_manager import embedding_manager  # Asegurar import
+        if not embedding_manager.is_available():
+            return False  # No eliminar si embeddings no disponibles
+        
+        # Calcular similitud con contexto general (umbral bajo, e.g., < 0.1)
+        context_sample = "texto descriptivo común"  # Puedes ajustar a un contexto real
+        similarity = embedding_manager.calculate_similarity(text, context_sample)
+        return similarity < 0.1  # Umbral bajísimo como discutimos

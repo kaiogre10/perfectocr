@@ -1,8 +1,10 @@
 # PerfectOCR/core/geo_matrix/header_detector.py
 import logging
+import re
 import numpy as np
 from typing import List, Dict, Tuple, Optional, Any
 from utils.geometric import get_polygon_y_center, get_polygon_bounds
+from utils.spatial_utils import get_line_y_coordinate
 from rapidfuzz import process, fuzz
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,8 @@ class HeaderDetector:
         
         self.header_keywords_list = [str(kw).upper().strip() for kw in header_keywords_list if kw]
         self.table_end_keywords = [str(kw).upper().strip() for kw in config.get('table_end_keywords', [])]
+        self.total_keywords = [str(kw).upper().strip() for kw in config.get('total_words', [])]
+        self.quantity_keywords = [str(kw).upper().strip() for kw in config.get('items_qty', [])]
         
         self.header_fuzzy_min_ratio = float(self.config.get('header_detection_fuzzy_min_ratio', 85.0))
         self.min_y_ratio = float(self.config.get('header_min_y_ratio', 0.05))
@@ -248,73 +252,163 @@ class HeaderDetector:
                     if poly:
                         try:
                             _, ymin_cand, _, ymax_cand = get_polygon_bounds(poly)
-                            if ymax_cand > ymin_cand:
-                                candidate_heights.append(ymax_cand - ymin_cand)
+                            candidate_heights.append(ymax_cand - ymin_cand)
                         except Exception: 
                             pass 
                 
-                avg_h = np.median(candidate_heights) if candidate_heights else self.default_line_height_for_gap
-                if avg_h <= 0: avg_h = self.default_line_height_for_gap
-                logger.debug(f"Grouping header lines. Median line height for gap: {avg_h:.2f}")
-
-                for next_line in potential_header_lines[1:]:
-                    next_line_poly = next_line.get('polygon_line_bbox')
-                    last_line_poly = last_line_in_block.get('polygon_line_bbox')
+                avg_line_height = np.mean(candidate_heights) if candidate_heights else self.default_line_height_for_gap
+                max_gap = avg_line_height * self.max_header_line_gap_factor
+                
+                for i in range(1, len(potential_header_lines)):
+                    current_candidate = potential_header_lines[i]
                     
-                    if not next_line_poly or not last_line_poly:
-                        continue 
                     try:
-                        _, _, _, last_y_max = get_polygon_bounds(last_line_poly)
-                        _, next_y_min, _, _ = get_polygon_bounds(next_line_poly)
-                        gap = next_y_min - last_y_max
+                        y_center_last = get_polygon_y_center(last_line_in_block.get('polygon_line_bbox', []))
+                        y_center_current = get_polygon_y_center(current_candidate.get('polygon_line_bbox', []))
                         
-                        if gap < (avg_h * self.max_header_line_gap_factor):
-                            final_header_lines_block.append(next_line)
-                            last_line_in_block = next_line
+                        if (y_center_current - y_center_last) <= max_gap:
+                            final_header_lines_block.append(current_candidate)
+                            last_line_in_block = current_candidate
                         else:
-                            logger.debug(f"Gap ({gap:.2f}) between '{last_line_in_block.get('text_raw')}' and '{next_line.get('text_raw')}' exceeds threshold ({avg_h * self.max_header_line_gap_factor:.2f}). Ending header block.")
                             break 
-                    except Exception as e_gap:
-                        logger.warning(f"Exception calculating header line gap: {e_gap}. Ending header block.")
+                    except Exception as e:
+                        logger.warning(f"Could not calculate y-centers for gap analysis. Error: {e}")
                         break
 
         if not final_header_lines_block:
-            logger.warning("Final header lines block is empty after grouping.")
+            logger.warning("final_header_lines_block is empty.")
             return None, None, None
         
-        header_words = self._get_words_from_lines(final_header_lines_block)
-        if not header_words:
-            logger.warning("No words extracted from the final header lines block.")
-            return None, None, None
-        
-        expanded_header_words = self._expand_header_elements(header_words)
-        if len(expanded_header_words) > len(header_words):
-            logger.info(f"Header words expanded from {len(header_words)} to {len(expanded_header_words)}.")
-            header_words = expanded_header_words
-        
-        # Asignar semantic_type a cada header_word
-        if semantic_keywords is not None:
-            for hw in header_words:
-                hw['semantic_type'] = self._assign_semantic_type(hw.get('text_raw', ''), semantic_keywords)
-        
-        all_ymins: List[float] = []
-        all_ymaxs: List[float] = []
+        final_header_words: List[Dict[str, Any]] = []
+        all_ymins_and_ymaxs: List[float] = []
+
         for line in final_header_lines_block:
-            line_poly_for_bounds = line.get('polygon_line_bbox')
-            if line_poly_for_bounds:
-                try:
-                    _, ymin_b, _, ymax_b = get_polygon_bounds(line_poly_for_bounds)
-                    all_ymins.append(ymin_b)
-                    all_ymaxs.append(ymax_b)
-                except Exception as e_bounds:
-                    logger.warning(f"Could not get bounds for header line: {e_bounds}")
-        
-        y_min_band = min(all_ymins) if all_ymins else None
-        y_max_band = max(all_ymaxs) if all_ymins else None
-        
-        if y_min_band is None or y_max_band is None:
-            logger.warning("Could not determine Y-bounds of the header band.")
-            return header_words, None, None
+            words = line.get('constituent_elements_ocr_data', [])
+            final_header_words.extend(words)
             
-        logger.info(f"Header band identified between Y={y_min_band:.2f} and Y={y_max_band:.2f} with {len(header_words)} words.")
-        return header_words, y_min_band, y_max_band
+            poly = line.get('polygon_line_bbox')
+            if poly:
+                try:
+                    _, ymin, _, ymax = get_polygon_bounds(poly)
+                    all_ymins_and_ymaxs.extend([ymin, ymax])
+                except Exception:
+                    pass
+
+        if not final_header_words:
+            logger.warning("No words found in the final header lines block.")
+            return None, None, None
+
+        y_min_band = min(all_ymins_and_ymaxs) if all_ymins_and_ymaxs else None
+        y_max_band = max(all_ymins_and_ymaxs) if all_ymins_and_ymaxs else None
+        
+        if final_header_words and semantic_keywords:
+            for word_info in final_header_words:
+                header_txt_src = word_info.get('text', word_info.get('text_raw', ''))
+                word_info['semantic_type'] = self._assign_semantic_type(header_txt_src, semantic_keywords)
+
+        return final_header_words, y_min_band, y_max_band
+
+    def find_table_end_and_grand_total(self, all_lines: List[Dict], y_max_header: float) -> Tuple[float, Optional[float]]:
+        y_min_table_end = self.page_height
+        document_grand_total = None
+
+        lines_after_header = [line for line in all_lines if get_line_y_coordinate(line) > y_max_header]
+
+        for line in sorted(lines_after_header, key=lambda l: get_line_y_coordinate(l)):
+            line_text_raw = line.get("text_raw", "")
+            if any(keyword.upper() in line_text_raw.upper() for keyword in self.table_end_keywords):
+                polygon = line.get('polygon_line_bbox')
+                if polygon:
+                    try:
+                        _, ymin_line, _, _ = get_polygon_bounds(polygon)
+                        y_min_table_end = ymin_line
+                        
+                        numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text_raw)
+                        if numbers:
+                            try:
+                                grand_total_str = numbers[-1].replace(',', '')
+                                document_grand_total = float(grand_total_str)
+                            except (ValueError, IndexError):
+                                pass
+                        break
+                    except Exception:
+                        y_min_table_end = get_line_y_coordinate(line)
+                        break
+                else:
+                    y_min_table_end = get_line_y_coordinate(line)
+                    break
+        
+        return y_min_table_end, document_grand_total
+
+    def find_document_summary_elements(
+        self,
+        all_lines: List[Dict],
+        table_body_lines: List[Dict]
+    ) -> Dict[str, Any]:
+        
+        table_body_line_ids = {line.get('line_id') for line in table_body_lines}
+        
+        remaining_lines = [
+            line for line in all_lines 
+            if line.get('line_id') not in table_body_line_ids
+        ]
+
+        found_totals = []
+        found_quantities = []
+        
+        for line in remaining_lines:
+            line_text = line.get("text_raw", "")
+            line_text_upper = line_text.upper()
+            y_coord = get_line_y_coordinate(line)
+            
+            # Buscar totales monetarios
+            if self.total_keywords:
+                for keyword in self.total_keywords:
+                    fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
+                    if fuzzy_ratio >= 70:
+                        numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text)
+                        if numbers:
+                            try:
+                                amount = float(numbers[-1].replace(',', ''))
+                                found_totals.append({
+                                    'type': 'monetary_total',
+                                    'keyword_found': keyword,
+                                    'fuzzy_match_score': fuzzy_ratio,
+                                    'amount': amount,
+                                    'line_text': line_text,
+                                    'line_y_coordinate': y_coord
+                                })
+                                break
+                            except (ValueError, IndexError):
+                                pass
+            
+            # Buscar cantidad de artículos
+            if self.quantity_keywords:
+                for keyword in self.quantity_keywords:
+                    fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
+                    if fuzzy_ratio >= 75:
+                        numbers = re.findall(r'\d+', line_text)
+                        if numbers:
+                            try:
+                                quantity = int(numbers[-1])
+                                found_quantities.append({
+                                    'type': 'item_quantity',
+                                    'keyword_found': keyword,
+                                    'fuzzy_match_score': fuzzy_ratio,
+                                    'quantity': quantity,
+                                    'line_text': line_text,
+                                    'line_y_coordinate': y_coord
+                                })
+                                break
+                            except (ValueError, IndexError):
+                                pass
+        
+        return {
+            'monetary_totals': found_totals,
+            'item_quantities': found_quantities,
+            'summary': {
+                'total_lines_analyzed': len(remaining_lines),
+                'monetary_totals_found': len(found_totals),
+                'item_quantities_found': len(found_quantities)
+            }
+        }

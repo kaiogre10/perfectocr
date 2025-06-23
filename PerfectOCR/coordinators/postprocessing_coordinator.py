@@ -6,6 +6,7 @@ from core.postprocessing.semantic_corrector import SemanticTableCorrector
 from core.postprocessing.semantic_consistency import UnifiedSemanticConsistencyCorrector
 from core.postprocessing.math_max import MatrixSolver
 import re 
+from utils.output_handlers import JsonOutputHandler
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,10 @@ class PostprocessingCoordinator:
         self.consistency_corrector = UnifiedSemanticConsistencyCorrector(config=postprocessing_cfg)
         self.matrix_solver = MatrixSolver(config=postprocessing_cfg)
 
+        # --- INICIALIZA EL HANDLER DE OUTPUTS JSON ---
+        output_config = self.config.get('output_config', {})
+        self.json_handler = JsonOutputHandler(config=output_config)
+
     def correct_table_structure(self, extraction_payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Aplica el pipeline de corrección de 3 fases a la matriz de la tabla.
@@ -40,6 +45,7 @@ class PostprocessingCoordinator:
         headers = outputs['header_elements']
         semantic_types = [h.get('semantic_type', 'descriptivo') for h in headers]
         document_totals = outputs.get('document_totals') # opcional
+        document_grand_total = outputs.get('document_grand_total')  # El total del documento
 
         # --- FASE 0: Adaptar Matriz de Entrada ---
         adapted_matrix = self._adapt_matrix_for_corrector(matrix_raw)
@@ -64,19 +70,49 @@ class PostprocessingCoordinator:
 
         # --- FASE 3: Resolución Matricial Aritmética ---
         logger.info("Fase 3: Ejecutando resolución matricial (MatrixSolver)...")
-        final_matrix = self.matrix_solver.solve(
+        
+        # Preparar el formato correcto para document_totals que espera MatrixSolver
+        formatted_totals = None
+        if document_grand_total is not None:
+            formatted_totals = {'total_mtl': document_grand_total}
+            logger.info(f"Usando total del documento para validación aritmética: {document_grand_total}")
+        
+        result = self.matrix_solver.solve(
             matrix=consistency_corrected_matrix,
             semantic_types=semantic_types,
             quarantined_data=quarantined_data,
-            document_totals=document_totals
+            document_totals=formatted_totals
+        )
+        final_matrix = result["matrix"]
+        semantic_math_types = result["semantic_math_types"]
+        
+        # Extraer headers como texto plano
+        headers_text = [h.get('text_raw', '') for h in headers]
+
+        math_max_output = {
+            "headers": headers_text,
+            "semantic_types": semantic_math_types,
+            "matrix": final_matrix,
+            "semantic_format": "math_assigned"
+        }
+
+        output_dir = extraction_payload.get("output_dir")
+        doc_id = extraction_payload.get("doc_id")  # O 'base_name'
+
+        self.json_handler.save(
+            data=math_max_output,
+            output_dir=output_dir,
+            file_name_with_extension=f"{doc_id}_math_max_matrix.json",
+            output_type="math_max_matrix"
         )
         
         # --- Finalizar y Actualizar Payload ---
         corrected_payload = extraction_payload.copy()
         corrected_payload['outputs'] = outputs.copy()
         corrected_payload['outputs']['table_matrix'] = final_matrix
-        corrected_payload['outputs']['math_max_matrix'] = final_matrix  # Guardar la matriz final de math_max
+        corrected_payload['outputs']['math_max_matrix'] = final_matrix
         corrected_payload['outputs']['quarantined_data'] = quarantined_data
+        corrected_payload['outputs']['semantic_math_types'] = semantic_math_types
         
         corrected_payload['status'] = 'success_arithmetically_solved'
         corrected_payload['message'] = 'Tabla reconstruida y resuelta aritméticamente.'
@@ -106,8 +142,7 @@ class PostprocessingCoordinator:
                     for word in original_words:
                         if isinstance(word, dict):
                             adapted_word = word.copy()
-                            if 'text' not in adapted_word and 'text_raw' in adapted_word:
-                                adapted_word['text'] = adapted_word['text_raw']
+                            adapted_word['text'] = adapted_cell['cell_text']
                             adapted_cell['words'].append(adapted_word)
 
                 elif adapted_cell['cell_text'].strip():

@@ -7,12 +7,13 @@
     "P.S."
   ],
   "semantic_types": [
-    "cuantitativo",
+    "cuantitativo, c",
     "descriptivo",
-    "cuantitativo",
-    "cuantitativo",
+    "cuantitativo, pu",
+    "cuantitativo, mtl",
     "descriptivo"
   ],
+  "semantic_format": "math_assigned",
   "matrix": [
     [
       "3",
@@ -23,9 +24,9 @@
     ],
     [
       "5",
-      "PUNTILLAS PM 0.5 67`6",
-      "9.49",
-      "47.45",
+      "PUNTILLAS PM 0.5",
+      "67.60",
+      "338",
       "15"
     ],
     [
@@ -50,11 +51,11 @@
       "7"
     ],
     [
-      "",
+      "2",
       "ri CREPE NGO C/10",
       "48",
-      "",
-      "00'96"
+      "96",
+      ""
     ],
     [
       "1",
@@ -80,7 +81,7 @@
     [
       "10",
       "PLACA UNIC 25X25X1",
-      "3",
+      "2.98",
       "29.76",
       "5"
     ],

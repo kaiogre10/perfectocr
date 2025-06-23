@@ -21,7 +21,7 @@ class TextCleaner:
         self.embedding_model = self.config.get('embedding_model', 'paraphrase-multilingual-MiniLM-L12-v2')
         self.anomaly_threshold = self.config.get('anomaly_threshold', 0.4)
         self.correct_low_confidence = self.config.get('correct_low_confidence', True)
-        self.low_confidence_threshold = self.config.get('low_confidence_threshold', 90.0)
+        self.low_confidence_threshold = self.config.get('low_confidence_threshold', 95.0)
         
         # Configuración de modo interactivo
         self.interactive_mode = self.config.get('interactive_mode', False)
@@ -162,10 +162,142 @@ class TextCleaner:
         pattern = re.compile(re.escape(old_word), re.IGNORECASE)
         return pattern.sub(new_word, text, count=1)
 
+    def _is_legitimate_abbreviation(self, text: str, confidence: float) -> bool:
+        """
+        Determina si un texto es probablemente una abreviatura legítima.
+        """
+        # Si la confianza es alta (>= 90%), es más probable que sea legítima
+        if confidence >= 90.0:
+            # Patrones típicos de abreviaturas de productos
+            if re.match(r'^[A-Z]+\d*$', text):  # PAL0, RED, DELG
+                return True
+            if re.match(r'^[A-Z]+/\d+$', text):  # C/10, C/25
+                return True
+            if re.match(r'^[A-Z]+\.[A-Z\.]*:?$', text):  # P.U.C.D:, P.S.
+                return True
+            if re.match(r'^\d+X\d+X?\d*$', text):  # 25X25X1, 4X60
+                return True
+        
+        return False
+
+    def _is_suspect_ocr_error(self, text: str, confidence: float) -> bool:
+        """
+        Detecta si un texto tiene características de error OCR sospechoso.
+        """
+        # Solo considerar sospechoso si la confianza es baja
+        if confidence >= 90.0:
+            return False
+        
+        # Patrones sospechosos: mezcla inusual de letras minúsculas/mayúsculas/números
+        if re.search(r'[a-z][A-Z]', text):  # pai0 (minúscula seguida de mayúscula)
+            return True
+        if re.search(r'[A-Z][a-z][A-Z]', text):  # PaL (mayús-min-mayús)
+            return True
+        if re.search(r'[a-z]\d[a-z]', text):  # del9 (letra-num-letra en minúscula)
+            return True
+        
+        return False
+
+    def _detect_and_correct_smart_abbreviations(self, text: str, confidence: float) -> str:
+        """
+        Detecta y corrige inteligentemente solo errores OCR reales, 
+        preservando abreviaturas legítimas.
+        """
+        if not embedding_manager.is_available():
+            return text
+        
+        words = text.split()
+        corrected_words = []
+        
+        for word in words:
+            # Si es una abreviatura legítima, no la toques
+            if self._is_legitimate_abbreviation(word, confidence):
+                corrected_words.append(word)
+                logger.debug(f"Preservando abreviatura legítima: '{word}' (confianza: {confidence:.1f}%)")
+                continue
+            
+            # Si parece un error OCR sospechoso, intenta corregir
+            if self._is_suspect_ocr_error(word, confidence):
+                # Generar variantes solo para caracteres comúnmente confundidos
+                variations = self._generate_targeted_variations(word)
+                
+                if variations:
+                    # Usar contexto para evaluar la mejor variante
+                    context_words = [w for w in words if w != word]
+                    best_variant = self._evaluate_semantic_fit_smart(word, variations, context_words)
+                    
+                    if best_variant and best_variant != word:
+                        logger.info(f"Corrigiendo error OCR sospechoso: '{word}' → '{best_variant}' (confianza: {confidence:.1f}%)")
+                        corrected_words.append(best_variant)
+                    else:
+                        corrected_words.append(word)
+                else:
+                    corrected_words.append(word)
+            else:
+                corrected_words.append(word)
+        
+        return " ".join(corrected_words)
+
+    def _generate_targeted_variations(self, word: str) -> List[str]:
+        """
+        Genera variaciones más específicas para errores OCR comunes.
+        """
+        variations = []
+        
+        # Solo caracteres que REALMENTE se confunden en OCR
+        ocr_confusions = {
+            '0': ['O'], 'O': ['0'],
+            '1': ['I', 'l'], 'I': ['1'], 'l': ['1', 'I'],
+            '5': ['S'], 'S': ['5'],
+            '8': ['B'], 'B': ['8'],
+            '9': ['g'], 'g': ['9'],
+            '2': ['Z'], 'Z': ['2']
+        }
+        
+        for i, char in enumerate(word):
+            if char in ocr_confusions:
+                for replacement in ocr_confusions[char]:
+                    variation = word[:i] + replacement + word[i+1:]
+                    variations.append(variation)
+        
+        return variations
+
+    def _evaluate_semantic_fit_smart(self, original_word: str, variations: List[str], context_words: List[str]) -> Optional[str]:
+        """
+        Evaluación semántica más conservadora para abreviaturas.
+        """
+        if not variations or not context_words:
+            return None
+        
+        try:
+            # Crear contexto más rico
+            context_phrase = " ".join(context_words)
+            
+            # Calcular similitud de cada variante con el contexto
+            similarities = []
+            for variation in variations:
+                test_phrase = f"{context_phrase} {variation}"
+                original_phrase = f"{context_phrase} {original_word}"
+                similarity = embedding_manager.calculate_similarity(original_phrase, test_phrase)
+                similarities.append(similarity)
+            
+            # Solo aceptar si hay una mejora SIGNIFICATIVA (no solo marginal)
+            max_similarity = max(similarities)
+            if max_similarity > 0.7:  # Umbral más alto para abreviaturas
+                best_idx = similarities.index(max_similarity)
+                return variations[best_idx]
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Error en evaluación semántica: {e}")
+            return None
+
     def clean_text(self, text: str, confidence: Optional[float] = None) -> str:
         """
         Limpia el texto SOLO si confianza < 90%.
         PRESERVA espaciado original para mantener propiedades geométricas.
+        Nueva lógica: distingue entre abreviaturas legítimas y errores OCR.
         """
         if not isinstance(text, str):
             return str(text) if text is not None else ""
@@ -180,9 +312,6 @@ class TextCleaner:
             logger.info(f"Normalizado valor numérico: '{text}' → '{texto_normalizado}'")
         text = texto_normalizado
 
-        # Paso 0.5: Eliminar ruido semántico
-        text = self._remove_semantic_noise(text)
-
         original_text = text
         cleaned_text = text
 
@@ -192,9 +321,9 @@ class TextCleaner:
         # Paso 2: Restaurar números protegidos
         cleaned_text = self._restore_numeric_values(cleaned_text, protected_numbers)
         
-        # Paso 3: Corrección semántica (solo si embeddings están disponibles)
+        # Paso 3: NUEVA LÓGICA - Corrección inteligente de abreviaturas
         if self.correct_low_confidence:
-            cleaned_text = self._detect_and_correct_anomalies(cleaned_text, confidence)
+            cleaned_text = self._detect_and_correct_smart_abbreviations(cleaned_text, confidence or 0.0)
         
         if cleaned_text != original_text:
             logger.debug(f"Texto corregido: '{original_text[:50]}...' → '{cleaned_text[:50]}...'")
@@ -269,33 +398,6 @@ class TextCleaner:
         
         return simple_matrix
 
-    def clean_matrix(self, matrix: List[List[Any]], confidence_data: Optional[Dict] = None) -> List[List[str]]:
-        """Limpia toda una matriz aplicando corrección semántica pura."""
-        cleaned_matrix = []
-        
-        for row_idx, row in enumerate(matrix):
-            cleaned_row = []
-            for col_idx, cell in enumerate(row):
-                if isinstance(cell, dict):
-                    cell_text = cell.get('cell_text', '')
-                    cell_confidence = cell.get('confidence', None)
-                elif isinstance(cell, str):
-                    cell_text = cell
-                    cell_confidence = None
-                else:
-                    cell_text = str(cell) if cell is not None else ""
-                    cell_confidence = None
-                
-                if cell_confidence is None and confidence_data:
-                    cell_confidence = self._get_confidence_for_cell(row_idx, col_idx, confidence_data)
-                
-                cleaned_cell = self.clean_text(cell_text, cell_confidence)
-                cleaned_row.append(cleaned_cell)
-            
-            cleaned_matrix.append(cleaned_row)
-        
-        logger.info(f"Matriz corregida semánticamente: {len(matrix)} filas procesadas")
-        return cleaned_matrix
 
     # Métodos de protección de números y utilidades
     def _protect_numeric_values(self, text: str) -> Dict[str, str]:
@@ -381,3 +483,37 @@ class TextCleaner:
                 logger.info(f"Eliminado por ruido semántico: '{word}' en '{text}' (similitud={similarity:.2f})")
 
         return " ".join(cleaned_words)
+
+    def _is_suspect_abbreviation(self, text: str) -> bool:
+        """
+        Detecta patrones sospechosos de abreviaturas con mezcla de letras y números.
+        """
+        # Patrones comunes de confusión entre letras y números
+        if re.search(r'[A-Za-z]/\d', text) or re.search(r'\d/[A-Za-z]', text):
+            return True
+        if re.search(r'[A-Za-z]\d[A-Za-z]', text):
+            return True
+        return False
+
+    def _correct_abbreviation(self, text: str, context: str) -> str:
+        """
+        Genera variantes de una abreviatura sospechosa y elige la mejor basada en el contexto.
+        """
+        # Generar variantes cambiando caracteres comúnmente confundidos
+        char_variations = {
+            '0': ['O'], 'O': ['0'],
+            '1': ['I', 'l'], 'I': ['1', 'l'], 'l': ['1', 'I'],
+            '5': ['S'], 'S': ['5'],
+            '8': ['B'], 'B': ['8']
+        }
+        
+        variations = [text]
+        for i, char in enumerate(text):
+            if char in char_variations:
+                for replacement in char_variations[char]:
+                    variation = text[:i] + replacement + text[i+1:]
+                    variations.append(variation)
+        
+        # Evaluar variantes usando embeddings
+        best_variation = max(variations, key=lambda v: self._evaluate_semantic_fit(v, context))
+        return best_variation
