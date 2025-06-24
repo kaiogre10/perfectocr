@@ -20,6 +20,7 @@ from coordinators.text_cleaning_coordinator import TextCleaningCoordinator
 from utils.output_handlers import JsonOutputHandler, TextOutputHandler, ExcelOutputHandler
 from utils.encoders import NumpyEncoder
 from core.preprocessing import toolbox
+from utils.config_loader import ConfigLoader
 
 # Configuración conservadora para estabilidad
 os.environ.update({
@@ -86,6 +87,35 @@ class PerfectOCRWorkflow:
         self.excel_output_handler = ExcelOutputHandler()
         logger.debug("PerfectOCRWorkflow listo para inicialización bajo demanda de coordinadores.")
 
+        # Al inicio, carga la configuración usando el ConfigLoader
+        config_loader = ConfigLoader(MASTER_CONFIG_FILE)
+        table_extractor_config = config_loader.get_table_extractor_config()
+        output_flags = config_loader.config.get('output_config', {}).get('enabled_outputs', {})
+
+        # Al crear el workflow o el coordinador:
+        self._table_extractor_coordinator = TableExtractorCoordinator(
+            config=table_extractor_config,
+            project_root=self.project_root,
+            output_flags=output_flags
+        )
+
+        self._postprocessing_coordinator = PostprocessingCoordinator(
+            config=self.postprocessing_config,
+            project_root=self.project_root,
+            output_flags=output_flags
+        )
+
+        self._text_cleaning_coordinator = TextCleaningCoordinator(
+            config=self.text_cleaning_config,
+            output_flags=output_flags
+        )
+
+        self._ocr_coordinator = OCREngineCoordinator(
+            config=self.ocr_config,
+            project_root=self.project_root,
+            output_flags=output_flags
+        )
+
     def _load_config(self, config_path: str) -> dict:
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
@@ -124,31 +154,18 @@ class PerfectOCRWorkflow:
 
     @property
     def ocr_coordinator(self) -> OCREngineCoordinator:
-        if self._ocr_coordinator is None:
-            self._ocr_coordinator = OCREngineCoordinator(config=self.ocr_config, project_root=self.project_root)
         return self._ocr_coordinator
 
     @property
     def table_extractor_coordinator(self) -> TableExtractorCoordinator:
-        if self._table_extractor_coordinator is None:
-            self._table_extractor_coordinator = TableExtractorCoordinator(
-                config=self.table_extractor_config, 
-                project_root=self.project_root
-            )
-            # CAMBIO: Pasar la configuración de output después de crear el coordinador
-            self._table_extractor_coordinator.json_output_handler = self.json_output_handler
         return self._table_extractor_coordinator
 
     @property
     def postprocessing_coordinator(self) -> PostprocessingCoordinator:
-        if self._postprocessing_coordinator is None:
-            self._postprocessing_coordinator = PostprocessingCoordinator(config=self.postprocessing_config, project_root=self.project_root)
         return self._postprocessing_coordinator
 
     @property
     def text_cleaning_coordinator(self) -> TextCleaningCoordinator:
-        if self._text_cleaning_coordinator is None:
-            self._text_cleaning_coordinator = TextCleaningCoordinator(config=self.text_cleaning_config)
         return self._text_cleaning_coordinator
 
     def _check_shared_folder_availability(self) -> bool:
@@ -299,7 +316,7 @@ class PerfectOCRWorkflow:
         processing_times_summary["4_ocr"] = round(time_ocr, 4)
         if not self._validate_ocr_results(ocr_results_payload, original_file_name):
             return self._build_error_response("error_ocr", original_file_name, "OCR no produjo texto utilizable.", "ocr_validation")
-        ocr_results_json_path = self._save_ocr_results(ocr_results_payload, base_name, current_output_dir)
+        ocr_results_json_path = ocr_results_payload.get("ocr_raw_json_path")
 
         # FASE 5: Reconstrucción de líneas (nuevo método en TableExtractorCoordinator)
         reconstructed_lines = self.table_extractor_coordinator.reconstruct_lines(
@@ -325,44 +342,15 @@ class PerfectOCRWorkflow:
             output_dir=current_output_dir
         )
         
+        # --- AÑADE ESTOS CAMPOS PARA EL POSTPROCESSING ---
+        table_extraction_payload["output_dir"] = current_output_dir
+        table_extraction_payload["doc_id"] = base_name
+
         # Ahora sí, pásalo al postprocesamiento
         semantically_corrected_payload = self.postprocessing_coordinator.correct_table_structure(
             extraction_payload=table_extraction_payload
         )
         
-        # Guardar la matriz corregida semánticamente para depuración
-        if self.output_config.get('enabled_outputs', {}).get('debug_semantic_matrix', False):
-            self._save_simplified_matrix(
-                matrix_data=semantically_corrected_payload.get('outputs', {}).get('table_matrix', []),
-                header_elements=semantically_corrected_payload.get('outputs', {}).get('header_elements', []),
-                base_name=base_name,
-                output_dir=current_output_dir,
-                suffix="semantically_corrected_matrix",
-                payload=semantically_corrected_payload
-            )
-
-        # Guardar la matriz después de la corrección de consistencia semántica
-        if self.output_config.get('enabled_outputs', {}).get('semantic_consistency_matrix', False):
-            self._save_simplified_matrix(
-                matrix_data=semantically_corrected_payload.get('outputs', {}).get('semantic_consistency_matrix', []),
-                header_elements=semantically_corrected_payload.get('outputs', {}).get('header_elements', []),
-                base_name=base_name,
-                output_dir=current_output_dir,
-                suffix="semantic_consistency_matrix",
-                payload=semantically_corrected_payload
-            )
-
-        # Guardar la matriz final después de math_max
-        if self.output_config.get('enabled_outputs', {}).get('math_max_matrix', False):
-            self._save_simplified_matrix(
-                matrix_data=semantically_corrected_payload.get('outputs', {}).get('math_max_matrix', []),
-                header_elements=semantically_corrected_payload.get('outputs', {}).get('header_elements', []),
-                base_name=base_name,
-                output_dir=current_output_dir,
-                suffix="math_max_matrix",
-                payload=semantically_corrected_payload
-            )
-
         # Usar el payload corregido para la respuesta final
         final_response = self._build_final_response(
             original_file_name,
@@ -373,6 +361,8 @@ class PerfectOCRWorkflow:
         # Añadir tiempos de procesamiento
         if 'metadata' not in final_response: final_response['metadata'] = {}
         final_response['metadata']['processing_times_seconds'] = processing_times_summary
+
+        structured_table_path = table_extraction_payload.get("outputs", {}).get("structured_table_json_path")
 
         return final_response
     
@@ -418,17 +408,8 @@ class PerfectOCRWorkflow:
             logger.error(f"OCR no produjo texto utilizable para {filename}. "
                         f"Motores habilitados: {enabled_list}")
             return False
-        
-        return True
 
-    def _save_ocr_results(self, ocr_results: dict, base_name: str, output_dir: str) -> Optional[str]:
-        ocr_json_filename = f"{base_name}_ocr_raw_results.json"
-        return self.json_output_handler.save(
-            data=ocr_results, 
-            output_dir=output_dir, 
-            file_name_with_extension=ocr_json_filename,
-            output_type="ocr_raw"
-        )
+        return True
 
     def _build_error_response(self, status: str, filename: str, message: str, stage: Optional[str] = None) -> dict:
         error_details = {"message": message}
@@ -438,84 +419,12 @@ class PerfectOCRWorkflow:
     def _build_final_response(self, filename: str, ocr_path: Optional[str], table_payload: dict) -> dict:
         status = table_payload.get("status", "error_unknown")
         final_status = "success" if status.startswith("success") else status
-        outputs = {"ocr_raw_json": ocr_path}
-        
-        # Solo intentar guardar la tabla estructurada si tenemos una ruta OCR válida
-        if table_payload.get("outputs", {}).get("table_matrix") and ocr_path:
-            # Usar el mismo directorio que el archivo OCR
-            output_dir = os.path.dirname(ocr_path)
-            if output_dir:  # Verificar que el directorio no esté vacío
-                matrix_path = self.json_output_handler.save(
-                    table_payload["outputs"], 
-                    output_dir, 
-                    f"{os.path.splitext(filename)[0]}_structured_table.json",
-                    output_type="structured_table"
-                )
-                outputs["structured_table_json"] = matrix_path
-            else:
-                logger.warning(f"No se pudo determinar el directorio de salida para {filename}")
-        elif table_payload.get("outputs", {}).get("table_matrix"):
-            logger.warning(f"No se pudo guardar la tabla estructurada para {filename}: ocr_path es None")
-            
+        outputs = {
+            "ocr_raw_json": ocr_path,
+            "structured_table_json": table_payload.get("outputs", {}).get("structured_table_json_path")
+        }
         summary = {"table_extraction_status": status, "message": table_payload.get("message")}
         return {"document_id": filename, "status_overall_workflow": final_status, "outputs": outputs, "summary": summary}
-
-    def _save_simplified_matrix(self, matrix_data: List[List[Dict]], header_elements: List[Dict], base_name: str, output_dir: str, suffix: str, payload: Optional[Dict] = None):
-        """Guarda una versión simplificada de solo texto de una matriz estructurada."""
-        if not matrix_data:
-            return
-
-        headers = [h.get("text_raw", "") for h in header_elements]
-        
-        # LÓGICA FUSIONADA: Usar semantic_math_types si está disponible, sino semantic_types básicos
-        if suffix == "math_max_matrix" and payload:
-            semantic_math_types = payload.get('outputs', {}).get('semantic_math_types')
-            if semantic_math_types:
-                semantic_types = semantic_math_types  # ← REEMPLAZAR directamente
-            else:
-                semantic_types = [h.get("semantic_type", "descriptivo") for h in header_elements]
-        else:
-            semantic_types = [h.get("semantic_type", "descriptivo") for h in header_elements]
-        
-        # Detectar si matrix_data contiene diccionarios o strings
-        if matrix_data and matrix_data[0] and isinstance(matrix_data[0][0], dict):
-            matrix_texts = [[cell.get("cell_text", "") for cell in row] for row in matrix_data]
-        else:
-            matrix_texts = matrix_data
-
-        # Construir el diccionario en el orden deseado
-        if suffix == "math_max_matrix":
-            simplified_dict = {
-                "headers": headers,
-                "semantic_types": semantic_types,
-                "semantic_format": "math_assigned",  # ← Aquí, en el orden correcto
-                "matrix": matrix_texts
-            }
-        else:
-            simplified_dict = {
-                "headers": headers,
-                "semantic_types": semantic_types,
-                "matrix": matrix_texts
-            }
-
-        output_filename = f"{base_name}_{suffix}.json"
-        output_path = os.path.join(output_dir, output_filename)
-        try:
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(simplified_dict, f, ensure_ascii=False, indent=2)
-            logger.info(f"Matriz simplificada de depuración ({suffix}) guardada en: {output_path}")
-        except Exception as e:
-            logger.error(f"Error guardando la matriz simplificada de depuración en {output_path}: {e}")
-
-        if suffix == "semantically_corrected_matrix":
-            if self.output_config.get('enabled_outputs', {}).get('ground_truth_excel', False):
-                self._update_excel_with_matrix(
-                    document_id=base_name,
-                    headers=headers,
-                    semantic_types=semantic_types,
-                    matrix_rows=matrix_texts,
-                    output_dir=output_dir
-                )
 
     def _update_excel_with_matrix(self,
                                   document_id: str,

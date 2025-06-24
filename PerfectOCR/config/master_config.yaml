@@ -323,18 +323,17 @@ postprocessing:
 
 output_config:
   enabled_outputs:
-    ocr_raw: false                        # Resultados directos del OCR
-    reconstructed_lines: false            # Líneas reconstruidas
-    cleaned_lines: false
-    table_body_lines: false               # Líneas de texto de tabla 
-    structured_table: false               # Output de geo_matrix
-    semantically_corrected_matrix: false  # Matriz del semantic corrector
-    semantic_consistency_matrix: false    # Matriz después de la corrección de consistencia semántica
-    math_max_matrix: true                # Matriz final después de math_max
-    visual_output: false                  # No es necesaria
-    ml_training_data: false               # Datos para ML
-    debug_semantic_matrix: false          # Para depuración
-    ground_truth_excel: false             # Excel consolidado
+    ocr_raw: true                         # Resultados directos del OCR
+    reconstructed_lines: false             # Líneas reconstruidas
+    cleaned_lines: true                   # Líneas limpias
+    table_body_lines: true                # Líneas de texto de tabla 
+    structured_table: true                # Output de geo_matrix
+    semantically_corrected_matrix: false   # Matriz del semantic corrector
+    semantic_consistency_matrix: false     # Matriz después de la corrección de consistencia semántica
+    math_max_matrix: true    # Matriz final después de math_max
+    ml_training_data: true                # Datos para ML
+    debug_semantic_matrix: false           # Para depuración
+    ground_truth_excel: true              # Excel consolidado
 
 batch_processing:
   small_batch_limit: 5

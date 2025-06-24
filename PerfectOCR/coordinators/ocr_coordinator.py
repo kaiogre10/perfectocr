@@ -10,13 +10,16 @@ from utils.geometric import calculate_iou
 from core.ocr.tesseract_wrapper import TesseractOCR
 from core.ocr.paddle_wrapper import PaddleOCRWrapper
 import time
+from utils.output_handlers import JsonOutputHandler
 
 logger = logging.getLogger(__name__)
 
 class OCREngineCoordinator:
-    def __init__(self, config: Dict, project_root: str): 
+    def __init__(self, config: Dict, project_root: str, output_flags: Dict[str, bool]):
         self.ocr_config_from_workflow = config
         self.project_root = project_root
+        self.output_flags = output_flags
+        self.json_output_handler = JsonOutputHandler()
         self.num_workers = 2  # Conservador pero estable
 
         # NUEVO: Verificar qué motores están habilitados
@@ -288,4 +291,15 @@ class OCREngineCoordinator:
         elif padd_result_payload and "error" in padd_result_payload:
             output_data["ocr_raw_results"]["paddleocr"] = {"error": padd_result_payload.get("error", "Error desconocido en PaddleOCR")}
         
+        # Guardar el resultado crudo del OCR si el flag está activo
+        ocr_json_path = None
+        if self.output_flags.get('ocr_raw', False) and image_file_name:
+            output_dir = self.ocr_config_from_workflow.get('output_dir', './output')
+            base_name = os.path.splitext(os.path.basename(image_file_name))[0]
+            ocr_json_path = self.json_output_handler.save(
+                data=output_data,
+                output_dir=output_dir,
+                file_name_with_extension=f"{base_name}_ocr_raw_results.json"
+            )
+        output_data["ocr_raw_json_path"] = ocr_json_path
         return output_data, time.perf_counter() - start_time

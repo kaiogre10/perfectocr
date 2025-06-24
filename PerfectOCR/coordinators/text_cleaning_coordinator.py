@@ -13,10 +13,11 @@ class TextCleaningCoordinator:
     Maneja la limpieza automática y la interfaz batch para correcciones manuales.
     """
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, output_flags: Dict[str, bool]):
         self.config = config
+        self.output_flags = output_flags
         self.text_cleaner = None
-        self.json_handler = JsonOutputHandler(config=self.config.get('output_config'))
+        self.json_handler = JsonOutputHandler()  # Sin config
         
         # Inicializar TextCleaner si está habilitado
         if self.config.get('enabled', True):
@@ -83,12 +84,11 @@ class TextCleaningCoordinator:
         
         # Guardar las líneas corregidas en un archivo intermedio
         cleaned_lines_path = os.path.join(output_dir, f"{doc_id}_cleaned_lines.json")
-        if self.config.get('output_config', {}).get('enabled_outputs', {}).get('cleaned_lines', True):
+        if self.output_flags.get('cleaned_lines', False):
             self.json_handler.save(
                 data=cleaned_lines_by_engine,
                 output_dir=output_dir,
-                file_name_with_extension=f"{doc_id}_cleaned_lines.json",
-                output_type="debug_cleaned_lines"
+                file_name_with_extension=f"{doc_id}_cleaned_lines.json"
             )
             logger.info(f"Líneas corregidas guardadas en: {cleaned_lines_path}")
         else:

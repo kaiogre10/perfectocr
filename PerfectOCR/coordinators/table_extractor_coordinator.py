@@ -19,9 +19,10 @@ from rapidfuzz import process, fuzz
 logger = logging.getLogger(__name__)
 
 class TableExtractorCoordinator:
-    def __init__(self, config: Dict, project_root: str):
+    def __init__(self, config: Dict, project_root: str, output_flags: Dict[str, bool]):
         self.config = config
         self.project_root = project_root
+        self.output_flags = output_flags
         self.line_reconstructor_params = self.config.get('line_reconstructor_params', {})
         self.header_detector_config = self.config.get('header_detector_config', {})
         self.geometric_structurer_config = self.config.get('geometric_structurer_config', {})
@@ -52,12 +53,12 @@ class TableExtractorCoordinator:
                 
         reconstructed_lines_by_engine['page_dimensions'] = page_dimensions
 
-        self.json_output_handler.save(
-            reconstructed_lines_by_engine,
-            output_dir,
-            f"{base_name}_reconstructed_lines.json",
-            output_type="reconstructed_lines"
-        )
+        if self.output_flags.get("reconstructed_lines", False):
+            self.json_output_handler.save(
+                reconstructed_lines_by_engine,
+                output_dir,
+                f"{base_name}_reconstructed_lines.json"
+            )
         return reconstructed_lines_by_engine
 
     def extract_table_from_cleaned_lines(self, cleaned_lines: Dict[str, list], base_name: str, output_dir: str) -> Dict[str, any]:
@@ -171,7 +172,7 @@ class TableExtractorCoordinator:
             return self._build_error_response("error_no_header", "No se pudo detectar un encabezado de tabla confiable con ningún método.")
         
         # --- Búsqueda de límites de tabla y total general ---
-        y_min_table_end, document_grand_total = self.header_detector.find_table_end_and_grand_total(
+        y_min_table_end = self.header_detector.find_table_end(
             all_lines=lines_for_header_detection,
             y_max_header=y_max_band
         )
@@ -190,23 +191,36 @@ class TableExtractorCoordinator:
         )
         
         # --- Búsqueda de totales y cantidades ---
-        document_totals = self.header_detector.find_document_summary_elements(
-            all_lines=lines_for_header_detection,
-            table_body_lines=lines_for_structuring
-        )
-        
+        monetary_totals = self.header_detector.find_monetary_totals(lines_for_header_detection)
+        item_quantities = self.header_detector.find_item_quantities(lines_for_header_detection)
+
+        document_totals = {}
+        if monetary_totals:
+            document_totals['total_mtl'] = max((item.get('amount', 0) for item in monetary_totals), default=None)
+        if item_quantities:
+            document_totals['total_c'] = max((item.get('quantity', 0) for item in item_quantities), default=None)
+
+        #logger.info(f"[DEBUG] Totales finales asignados: total_mtl={document_totals.get('total_mtl')}, total_c={document_totals.get('total_c')}")
+
         # --- Guardar datos intermedios ---
-        self.json_output_handler.save(
-            {
-                "header_band_y_coordinates": [y_min_band, y_max_band],
-                "table_end_y_coordinate": y_min_table_end,
-                "tesseract_table_body_lines": table_body_tesseract_lines,
-                "paddle_table_body_lines": table_body_paddle_lines,
-            },
-            output_dir,
-            f"{base_name}_table_body_lines.json",
-            output_type="table_body_lines"
-        )
+        if self.output_flags.get("table_body_lines", False):
+            self.json_output_handler.save(
+                {
+                    "header_band_y_coordinates": [y_min_band, y_max_band],
+                    "table_end_y_coordinate": y_min_table_end,
+                    "tesseract_table_body_lines": table_body_tesseract_lines,
+                    "paddle_table_body_lines": table_body_paddle_lines,
+                },
+                output_dir,
+                f"{base_name}_table_body_lines.json"
+            )
+        structured_table_path = None
+        if self.output_flags.get("structured_table", False):
+            structured_table_path = self.json_output_handler.save(
+                final_matrix,
+                output_dir,
+                f"{base_name}_structured_table.json"
+            )
         
         final_payload = {
             "document_id": base_name,
@@ -215,7 +229,8 @@ class TableExtractorCoordinator:
             "outputs": {
                 "table_matrix": final_matrix,
                 "header_elements": header_words,
-                "document_totals": document_totals
+                "document_totals": document_totals,
+                "structured_table_json_path": structured_table_path
             }
         }
         
@@ -224,9 +239,6 @@ class TableExtractorCoordinator:
                 "PaddleOCR no devolvió líneas; se usó Tesseract como fallback."
             )
         
-        if document_grand_total:
-            final_payload["outputs"]["document_grand_total"] = document_grand_total
-        
         # Generar datos para entrenamiento de ML
         ml_training_data = prepare_header_ml_data(
             base_name=base_name,
@@ -234,14 +246,11 @@ class TableExtractorCoordinator:
             all_lines=lines_for_header_detection,
             header_words=header_words
         )
-        if ml_training_data:
-            final_payload.setdefault("outputs", {})["ml_training_data"] = ml_training_data
-            # Guardar el JSON de entrenamiento de ML si está habilitado
+        if self.output_flags.get("ml_training_data", False) and ml_training_data:
             self.json_output_handler.save(
-                data=ml_training_data,
-                output_dir=output_dir,
-                file_name_with_extension=f"{base_name}_ml_training_data.json",
-                output_type="ml_training_data"
+                ml_training_data,
+                output_dir,
+                f"{base_name}_ml_training_data.json"
             )
 
         return final_payload

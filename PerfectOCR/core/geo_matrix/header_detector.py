@@ -308,10 +308,8 @@ class HeaderDetector:
 
         return final_header_words, y_min_band, y_max_band
 
-    def find_table_end_and_grand_total(self, all_lines: List[Dict], y_max_header: float) -> Tuple[float, Optional[float]]:
+    def find_table_end(self, all_lines: List[Dict], y_max_header: float) -> float:
         y_min_table_end = self.page_height
-        document_grand_total = None
-
         lines_after_header = [line for line in all_lines if get_line_y_coordinate(line) > y_max_header]
 
         for line in sorted(lines_after_header, key=lambda l: get_line_y_coordinate(l)):
@@ -322,14 +320,6 @@ class HeaderDetector:
                     try:
                         _, ymin_line, _, _ = get_polygon_bounds(polygon)
                         y_min_table_end = ymin_line
-                        
-                        numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text_raw)
-                        if numbers:
-                            try:
-                                grand_total_str = numbers[-1].replace(',', '')
-                                document_grand_total = float(grand_total_str)
-                            except (ValueError, IndexError):
-                                pass
                         break
                     except Exception:
                         y_min_table_end = get_line_y_coordinate(line)
@@ -338,7 +328,59 @@ class HeaderDetector:
                     y_min_table_end = get_line_y_coordinate(line)
                     break
         
-        return y_min_table_end, document_grand_total
+        return y_min_table_end
+
+    def find_monetary_totals(self, all_lines: list) -> list:
+        found_totals = []
+        for line in all_lines:
+            line_text = line.get("text_raw", "")
+            line_text_upper = line_text.upper()
+            y_coord = get_line_y_coordinate(line)
+            for keyword in self.total_keywords:
+                fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
+                if fuzzy_ratio >= 70:
+                    numbers = re.findall(r'[\d,]+\.?\d{1,2}', line_text)
+                    if numbers:
+                        try:
+                            amount = float(numbers[-1].replace(',', ''))
+                            found_totals.append({
+                                'type': 'monetary_total',
+                                'keyword_found': keyword,
+                                'fuzzy_match_score': fuzzy_ratio,
+                                'amount': amount,
+                                'line_text': line_text,
+                                'line_y_coordinate': y_coord
+                            })
+                            break
+                        except (ValueError, IndexError):
+                            pass
+        return found_totals
+
+    def find_item_quantities(self, all_lines: list) -> list:
+        found_quantities = []
+        for line in all_lines:
+            line_text = line.get("text_raw", "")
+            line_text_upper = line_text.upper()
+            y_coord = get_line_y_coordinate(line)
+            for keyword in self.quantity_keywords:
+                fuzzy_ratio = fuzz.partial_ratio(keyword.upper(), line_text_upper)
+                if fuzzy_ratio >= 75:
+                    numbers = re.findall(r'\d+', line_text)
+                    if numbers:
+                        try:
+                            quantity = int(numbers[-1])
+                            found_quantities.append({
+                                'type': 'item_quantity',
+                                'keyword_found': keyword,
+                                'fuzzy_match_score': fuzzy_ratio,
+                                'quantity': quantity,
+                                'line_text': line_text,
+                                'line_y_coordinate': y_coord
+                            })
+                            break
+                        except (ValueError, IndexError):
+                            pass
+        return found_quantities
 
     def find_document_summary_elements(
         self,
