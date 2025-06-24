@@ -3,7 +3,6 @@ from coordinators.input_validation_coordinator import InputValidationCoordinator
 from coordinators.preprocessing_coordinator import PreprocessingCoordinator
 from coordinators.ocr_coordinator import OCREngineCoordinator
 from coordinators.postprocessing_coordinator import PostprocessingCoordinator
-from coordinators.spatial_coordinator import SpatialAnalyzerCoordinator
 from coordinators.table_extractor_coordinator import TableExtractorCoordinator
 
 __all__ = [
@@ -11,6 +10,5 @@ __all__ = [
     'PreprocessingCoordinator',
     'OCREngineCoordinator',
     'PostprocessingCoordinator',
-    'SpatialAnalyzerCoordinator',
     'TableExtractorCoordinator'
 ]

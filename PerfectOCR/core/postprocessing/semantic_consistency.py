@@ -16,8 +16,6 @@ class UnifiedSemanticConsistencyCorrector:
 
     def __init__(self, config: Optional[Dict] = None):
         self.config = config if config is not None else {}
-        # Cargar modelo usando el gestor centralizado
-        embedding_manager.load_model('paraphrase-multilingual-MiniLM-L12-v2')
         # Umbrales de configuración
         self.magnitude_z_score_threshold = 3.0
         self.descriptive_noise_similarity_threshold = 0.5
@@ -39,7 +37,7 @@ class UnifiedSemanticConsistencyCorrector:
         quarantined_data = []  # Lista de cuarentena con seguimiento de origen
 
         for col_idx, s_type in enumerate(semantic_types):
-            logger.info(f"--- Analizando Columna {col_idx} (Tipo: {s_type}) ---")
+            #logger.info(f"--- Analizando Columna {col_idx} (Tipo: {s_type}) ---")
             column_values = [row[col_idx] for row in corrected_matrix]
             
             if s_type == 'cuantitativo':
@@ -101,7 +99,6 @@ class UnifiedSemanticConsistencyCorrector:
             'mean': np.mean(values),
             'std': np.std(values) if len(values) > 1 else 0
         }
-        logger.info(f"  Perfil Cuantitativo: Media={profile['mean']:.2f}, StdDev={profile['std']:.2f} ({len(values)} valores)")
         return profile
 
     def _correct_quantitative_cell(self, cell: str, profile: Dict, row_idx: int, col_idx: int) -> str:
@@ -135,7 +132,6 @@ class UnifiedSemanticConsistencyCorrector:
         embeddings = embedding_manager.encode(valid_texts, convert_to_tensor=False)
         centroid_embedding = np.mean(embeddings, axis=0)
         profile = {'is_valid': True, 'centroid': centroid_embedding}
-        logger.info(f"  Perfil Descriptivo: Creado a partir de {len(valid_texts)} celdas de texto válidas.")
         return profile
 
     def _extract_from_descriptive_cell(self, cell: str, profile: Dict, row_idx: int, col_idx: int) -> Tuple[str, Optional[str]]:

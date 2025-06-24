@@ -1,0 +1,1184 @@
+[
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0015",
+                    "text_raw": "2",
+                    "polygon_coords": [
+                        [
+                            80.0,
+                            1591.0
+                        ],
+                        [
+                            122.0,
+                            1591.0
+                        ],
+                        [
+                            122.0,
+                            1655.0
+                        ],
+                        [
+                            80.0,
+                            1655.0
+                        ]
+                    ],
+                    "confidence": 96.52,
+                    "engine_source": "paddleocr",
+                    "cx": 101.0,
+                    "cy": 1623.0,
+                    "xmin": 80.0,
+                    "ymin": 1591.0,
+                    "xmax": 122.0,
+                    "ymax": 1655.0,
+                    "height": 64.0,
+                    "width": 42.0,
+                    "height_h1": 63.0
+                }
+            ],
+            "cell_text": "2"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0016",
+                    "text_raw": "HOJA CTA CAN 09 DIEM100",
+                    "polygon_coords": [
+                        [
+                            217.0,
+                            1588.0
+                        ],
+                        [
+                            1043.0,
+                            1585.0
+                        ],
+                        [
+                            1043.0,
+                            1646.0
+                        ],
+                        [
+                            217.0,
+                            1649.0
+                        ]
+                    ],
+                    "confidence": 97.74,
+                    "engine_source": "paddleocr",
+                    "cx": 630.0,
+                    "cy": 1617.0,
+                    "xmin": 217.0,
+                    "ymin": 1585.0,
+                    "xmax": 1043.0,
+                    "ymax": 1649.0,
+                    "height": 64.0,
+                    "width": 826.0,
+                    "height_h1": 63.0
+                }
+            ],
+            "cell_text": "HOJA CTA CAN 09 DIEM100"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0017",
+                    "text_raw": "$55.50 $111.00",
+                    "polygon_coords": [
+                        [
+                            1083.0,
+                            1582.0
+                        ],
+                        [
+                            1566.0,
+                            1582.0
+                        ],
+                        [
+                            1566.0,
+                            1643.0
+                        ],
+                        [
+                            1083.0,
+                            1643.0
+                        ]
+                    ],
+                    "confidence": 97.56,
+                    "engine_source": "paddleocr",
+                    "cx": 1324.5,
+                    "cy": 1612.5,
+                    "xmin": 1083.0,
+                    "ymin": 1582.0,
+                    "xmax": 1566.0,
+                    "ymax": 1643.0,
+                    "height": 61.0,
+                    "width": 483.0,
+                    "height_h1": 60.0
+                }
+            ],
+            "cell_text": "$55.50 $111.00"
+        },
+        {
+            "words": [],
+            "cell_text": ""
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0018",
+                    "text_raw": "FOMY C DIA AM C/10",
+                    "polygon_coords": [
+                        [
+                            217.0,
+                            1680.0
+                        ],
+                        [
+                            847.0,
+                            1671.0
+                        ],
+                        [
+                            848.0,
+                            1732.0
+                        ],
+                        [
+                            218.0,
+                            1742.0
+                        ]
+                    ],
+                    "confidence": 96.54,
+                    "engine_source": "paddleocr",
+                    "cx": 531.6465528734298,
+                    "cy": 1706.2630017159297,
+                    "xmin": 217.0,
+                    "ymin": 1671.0,
+                    "xmax": 848.0,
+                    "ymax": 1742.0,
+                    "height": 71.0,
+                    "width": 631.0,
+                    "height_h1": 70.0
+                }
+            ],
+            "cell_text": "FOMY C DIA AM C/10"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0019",
+                    "text_raw": "$30.00",
+                    "polygon_coords": [
+                        [
+                            1013.0,
+                            1677.0
+                        ],
+                        [
+                            1221.0,
+                            1677.0
+                        ],
+                        [
+                            1221.0,
+                            1732.0
+                        ],
+                        [
+                            1013.0,
+                            1732.0
+                        ]
+                    ],
+                    "confidence": 92.71,
+                    "engine_source": "paddleocr",
+                    "cx": 1117.0,
+                    "cy": 1704.5,
+                    "xmin": 1013.0,
+                    "ymin": 1677.0,
+                    "xmax": 1221.0,
+                    "ymax": 1732.0,
+                    "height": 55.0,
+                    "width": 208.0,
+                    "height_h1": 54.0
+                }
+            ],
+            "cell_text": "$30.00"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0020",
+                    "text_raw": "$30.00",
+                    "polygon_coords": [
+                        [
+                            1270.0,
+                            1677.0
+                        ],
+                        [
+                            1472.0,
+                            1677.0
+                        ],
+                        [
+                            1472.0,
+                            1732.0
+                        ],
+                        [
+                            1270.0,
+                            1732.0
+                        ]
+                    ],
+                    "confidence": 99.68,
+                    "engine_source": "paddleocr",
+                    "cx": 1371.0,
+                    "cy": 1704.5,
+                    "xmin": 1270.0,
+                    "ymin": 1677.0,
+                    "xmax": 1472.0,
+                    "ymax": 1732.0,
+                    "height": 55.0,
+                    "width": 202.0,
+                    "height_h1": 54.0
+                }
+            ],
+            "cell_text": "$30.00"
+        },
+        {
+            "words": [],
+            "cell_text": ""
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0022",
+                    "text_raw": "RAFIA DECORATIVA AZ CL",
+                    "polygon_coords": [
+                        [
+                            220.0,
+                            1766.0
+                        ],
+                        [
+                            991.0,
+                            1763.0
+                        ],
+                        [
+                            991.0,
+                            1819.0
+                        ],
+                        [
+                            220.0,
+                            1822.0
+                        ]
+                    ],
+                    "confidence": 99.7,
+                    "engine_source": "paddleocr",
+                    "cx": 605.5,
+                    "cy": 1792.5,
+                    "xmin": 220.0,
+                    "ymin": 1763.0,
+                    "xmax": 991.0,
+                    "ymax": 1822.0,
+                    "height": 59.0,
+                    "width": 771.0,
+                    "height_h1": 58.0
+                }
+            ],
+            "cell_text": "RAFIA DECORATIVA AZ CL"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0021",
+                    "text_raw": "$18.90",
+                    "polygon_coords": [
+                        [
+                            1074.0,
+                            1754.0
+                        ],
+                        [
+                            1291.0,
+                            1754.0
+                        ],
+                        [
+                            1291.0,
+                            1819.0
+                        ],
+                        [
+                            1074.0,
+                            1819.0
+                        ]
+                    ],
+                    "confidence": 99.99,
+                    "engine_source": "paddleocr",
+                    "cx": 1182.5,
+                    "cy": 1786.5,
+                    "xmin": 1074.0,
+                    "ymin": 1754.0,
+                    "xmax": 1291.0,
+                    "ymax": 1819.0,
+                    "height": 65.0,
+                    "width": 217.0,
+                    "height_h1": 64.0
+                }
+            ],
+            "cell_text": "$18.90"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0023",
+                    "text_raw": "$56.70",
+                    "polygon_coords": [
+                        [
+                            1331.0,
+                            1760.0
+                        ],
+                        [
+                            1535.0,
+                            1757.0
+                        ],
+                        [
+                            1536.0,
+                            1815.0
+                        ],
+                        [
+                            1332.0,
+                            1819.0
+                        ]
+                    ],
+                    "confidence": 99.97,
+                    "engine_source": "paddleocr",
+                    "cx": 1433.2094938917974,
+                    "cy": 1787.755392670157,
+                    "xmin": 1331.0,
+                    "ymin": 1757.0,
+                    "xmax": 1536.0,
+                    "ymax": 1819.0,
+                    "height": 62.0,
+                    "width": 205.0,
+                    "height_h1": 61.0
+                }
+            ],
+            "cell_text": "$56.70"
+        },
+        {
+            "words": [],
+            "cell_text": ""
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0027",
+                    "text_raw": "1",
+                    "polygon_coords": [
+                        [
+                            80.0,
+                            1852.0
+                        ],
+                        [
+                            122.0,
+                            1852.0
+                        ],
+                        [
+                            122.0,
+                            1917.0
+                        ],
+                        [
+                            80.0,
+                            1917.0
+                        ]
+                    ],
+                    "confidence": 60.95,
+                    "engine_source": "paddleocr",
+                    "cx": 101.0,
+                    "cy": 1884.5,
+                    "xmin": 80.0,
+                    "ymin": 1852.0,
+                    "xmax": 122.0,
+                    "ymax": 1917.0,
+                    "height": 65.0,
+                    "width": 42.0,
+                    "height_h1": 64.0
+                }
+            ],
+            "cell_text": "1"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0024",
+                    "text_raw": "PLT 20 SURT C/12",
+                    "polygon_coords": [
+                        [
+                            220.0,
+                            1849.0
+                        ],
+                        [
+                            768.0,
+                            1846.0
+                        ],
+                        [
+                            768.0,
+                            1911.0
+                        ],
+                        [
+                            221.0,
+                            1914.0
+                        ]
+                    ],
+                    "confidence": 99.51,
+                    "engine_source": "paddleocr",
+                    "cx": 494.24607790796784,
+                    "cy": 1879.9901280358163,
+                    "xmin": 220.0,
+                    "ymin": 1846.0,
+                    "xmax": 768.0,
+                    "ymax": 1914.0,
+                    "height": 68.0,
+                    "width": 548.0,
+                    "height_h1": 67.0
+                }
+            ],
+            "cell_text": "PLT 20 SURT C/12"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0025",
+                    "text_raw": "$99.50",
+                    "polygon_coords": [
+                        [
+                            976.0,
+                            1846.0
+                        ],
+                        [
+                            1193.0,
+                            1846.0
+                        ],
+                        [
+                            1193.0,
+                            1911.0
+                        ],
+                        [
+                            976.0,
+                            1911.0
+                        ]
+                    ],
+                    "confidence": 99.9,
+                    "engine_source": "paddleocr",
+                    "cx": 1084.5,
+                    "cy": 1878.5,
+                    "xmin": 976.0,
+                    "ymin": 1846.0,
+                    "xmax": 1193.0,
+                    "ymax": 1911.0,
+                    "height": 65.0,
+                    "width": 217.0,
+                    "height_h1": 64.0
+                }
+            ],
+            "cell_text": "$99.50"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0026",
+                    "text_raw": "$99.50",
+                    "polygon_coords": [
+                        [
+                            1224.0,
+                            1840.0
+                        ],
+                        [
+                            1435.0,
+                            1840.0
+                        ],
+                        [
+                            1435.0,
+                            1905.0
+                        ],
+                        [
+                            1224.0,
+                            1905.0
+                        ]
+                    ],
+                    "confidence": 99.96,
+                    "engine_source": "paddleocr",
+                    "cx": 1329.5,
+                    "cy": 1872.5,
+                    "xmin": 1224.0,
+                    "ymin": 1840.0,
+                    "xmax": 1435.0,
+                    "ymax": 1905.0,
+                    "height": 65.0,
+                    "width": 211.0,
+                    "height_h1": 64.0
+                }
+            ],
+            "cell_text": "$99.50"
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0028",
+                    "text_raw": "3",
+                    "polygon_coords": [
+                        [
+                            76.0,
+                            1935.0
+                        ],
+                        [
+                            125.0,
+                            1935.0
+                        ],
+                        [
+                            125.0,
+                            2003.0
+                        ],
+                        [
+                            76.0,
+                            2003.0
+                        ]
+                    ],
+                    "confidence": 99.98,
+                    "engine_source": "paddleocr",
+                    "cx": 100.5,
+                    "cy": 1969.0,
+                    "xmin": 76.0,
+                    "ymin": 1935.0,
+                    "xmax": 125.0,
+                    "ymax": 2003.0,
+                    "height": 68.0,
+                    "width": 49.0,
+                    "height_h1": 67.0
+                }
+            ],
+            "cell_text": "3"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0030",
+                    "text_raw": "CHINA AM CAN C/5O",
+                    "polygon_coords": [
+                        [
+                            226.0,
+                            1942.0
+                        ],
+                        [
+                            832.0,
+                            1942.0
+                        ],
+                        [
+                            832.0,
+                            1994.0
+                        ],
+                        [
+                            226.0,
+                            1994.0
+                        ]
+                    ],
+                    "confidence": 94.89,
+                    "engine_source": "paddleocr",
+                    "cx": 529.0,
+                    "cy": 1968.0,
+                    "xmin": 226.0,
+                    "ymin": 1942.0,
+                    "xmax": 832.0,
+                    "ymax": 1994.0,
+                    "height": 52.0,
+                    "width": 606.0,
+                    "height_h1": 51.0
+                }
+            ],
+            "cell_text": "CHINA AM CAN C/5O"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0029",
+                    "text_raw": "$53.70 $161.10 /",
+                    "polygon_coords": [
+                        [
+                            1012.0,
+                            1927.0
+                        ],
+                        [
+                            1577.0,
+                            1907.0
+                        ],
+                        [
+                            1580.0,
+                            1993.0
+                        ],
+                        [
+                            1015.0,
+                            2013.0
+                        ]
+                    ],
+                    "confidence": 93.84,
+                    "engine_source": "paddleocr",
+                    "cx": 1296.0,
+                    "cy": 1960.0,
+                    "xmin": 1012.0,
+                    "ymin": 1907.0,
+                    "xmax": 1580.0,
+                    "ymax": 2013.0,
+                    "height": 106.0,
+                    "width": 568.0,
+                    "height_h1": 105.0
+                }
+            ],
+            "cell_text": "$53.70 $161.10 /"
+        },
+        {
+            "words": [],
+            "cell_text": ""
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0033",
+                    "text_raw": "1",
+                    "polygon_coords": [
+                        [
+                            83.0,
+                            2031.0
+                        ],
+                        [
+                            122.0,
+                            2031.0
+                        ],
+                        [
+                            122.0,
+                            2086.0
+                        ],
+                        [
+                            83.0,
+                            2086.0
+                        ]
+                    ],
+                    "confidence": 99.96,
+                    "engine_source": "paddleocr",
+                    "cx": 102.5,
+                    "cy": 2058.5,
+                    "xmin": 83.0,
+                    "ymin": 2031.0,
+                    "xmax": 122.0,
+                    "ymax": 2086.0,
+                    "height": 55.0,
+                    "width": 39.0,
+                    "height_h1": 54.0
+                }
+            ],
+            "cell_text": "1"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0034",
+                    "text_raw": "LUSTRE AM CAN C/25",
+                    "polygon_coords": [
+                        [
+                            220.0,
+                            2028.0
+                        ],
+                        [
+                            869.0,
+                            2025.0
+                        ],
+                        [
+                            869.0,
+                            2080.0
+                        ],
+                        [
+                            220.0,
+                            2083.0
+                        ]
+                    ],
+                    "confidence": 98.31,
+                    "engine_source": "paddleocr",
+                    "cx": 544.5,
+                    "cy": 2054.0,
+                    "xmin": 220.0,
+                    "ymin": 2025.0,
+                    "xmax": 869.0,
+                    "ymax": 2083.0,
+                    "height": 58.0,
+                    "width": 649.0,
+                    "height_h1": 57.0
+                }
+            ],
+            "cell_text": "LUSTRE AM CAN C/25"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0031",
+                    "text_raw": "$66.90",
+                    "polygon_coords": [
+                        [
+                            1037.0,
+                            2019.0
+                        ],
+                        [
+                            1245.0,
+                            2019.0
+                        ],
+                        [
+                            1245.0,
+                            2083.0
+                        ],
+                        [
+                            1037.0,
+                            2083.0
+                        ]
+                    ],
+                    "confidence": 99.98,
+                    "engine_source": "paddleocr",
+                    "cx": 1141.0,
+                    "cy": 2051.0,
+                    "xmin": 1037.0,
+                    "ymin": 2019.0,
+                    "xmax": 1245.0,
+                    "ymax": 2083.0,
+                    "height": 64.0,
+                    "width": 208.0,
+                    "height_h1": 63.0
+                }
+            ],
+            "cell_text": "$66.90"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0032",
+                    "text_raw": "$66.90",
+                    "polygon_coords": [
+                        [
+                            1288.0,
+                            2015.0
+                        ],
+                        [
+                            1499.0,
+                            2015.0
+                        ],
+                        [
+                            1499.0,
+                            2080.0
+                        ],
+                        [
+                            1288.0,
+                            2080.0
+                        ]
+                    ],
+                    "confidence": 99.96,
+                    "engine_source": "paddleocr",
+                    "cx": 1393.5,
+                    "cy": 2047.5,
+                    "xmin": 1288.0,
+                    "ymin": 2015.0,
+                    "xmax": 1499.0,
+                    "ymax": 2080.0,
+                    "height": 65.0,
+                    "width": 211.0,
+                    "height_h1": 64.0
+                }
+            ],
+            "cell_text": "$66.90"
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0038",
+                    "text_raw": "1",
+                    "polygon_coords": [
+                        [
+                            80.0,
+                            2117.0
+                        ],
+                        [
+                            128.0,
+                            2117.0
+                        ],
+                        [
+                            128.0,
+                            2179.0
+                        ],
+                        [
+                            80.0,
+                            2179.0
+                        ]
+                    ],
+                    "confidence": 100.0,
+                    "engine_source": "paddleocr",
+                    "cx": 104.0,
+                    "cy": 2148.0,
+                    "xmin": 80.0,
+                    "ymin": 2117.0,
+                    "xmax": 128.0,
+                    "ymax": 2179.0,
+                    "height": 62.0,
+                    "width": 48.0,
+                    "height_h1": 61.0
+                }
+            ],
+            "cell_text": "1"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0035",
+                    "text_raw": "BOLA UNlC 9 100MM C/10",
+                    "polygon_coords": [
+                        [
+                            220.0,
+                            2114.0
+                        ],
+                        [
+                            1003.0,
+                            2108.0
+                        ],
+                        [
+                            1004.0,
+                            2169.0
+                        ],
+                        [
+                            221.0,
+                            2176.0
+                        ]
+                    ],
+                    "confidence": 95.2,
+                    "engine_source": "paddleocr",
+                    "cx": 610.9391693140369,
+                    "cy": 2141.758912813272,
+                    "xmin": 220.0,
+                    "ymin": 2108.0,
+                    "xmax": 1004.0,
+                    "ymax": 2176.0,
+                    "height": 68.0,
+                    "width": 784.0,
+                    "height_h1": 67.0
+                }
+            ],
+            "cell_text": "BOLA UNlC 9 100MM C/10"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0036",
+                    "text_raw": "$78.91",
+                    "polygon_coords": [
+                        [
+                            1073.0,
+                            2109.0
+                        ],
+                        [
+                            1277.0,
+                            2101.0
+                        ],
+                        [
+                            1280.0,
+                            2169.0
+                        ],
+                        [
+                            1076.0,
+                            2176.0
+                        ]
+                    ],
+                    "confidence": 99.98,
+                    "engine_source": "paddleocr",
+                    "cx": 1176.7513866231648,
+                    "cy": 2138.7395323545406,
+                    "xmin": 1073.0,
+                    "ymin": 2101.0,
+                    "xmax": 1280.0,
+                    "ymax": 2176.0,
+                    "height": 75.0,
+                    "width": 207.0,
+                    "height_h1": 74.0
+                }
+            ],
+            "cell_text": "$78.91"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0037",
+                    "text_raw": "$78.91",
+                    "polygon_coords": [
+                        [
+                            1337.0,
+                            2105.0
+                        ],
+                        [
+                            1542.0,
+                            2105.0
+                        ],
+                        [
+                            1542.0,
+                            2172.0
+                        ],
+                        [
+                            1337.0,
+                            2172.0
+                        ]
+                    ],
+                    "confidence": 99.99,
+                    "engine_source": "paddleocr",
+                    "cx": 1439.5,
+                    "cy": 2138.5,
+                    "xmin": 1337.0,
+                    "ymin": 2105.0,
+                    "xmax": 1542.0,
+                    "ymax": 2172.0,
+                    "height": 67.0,
+                    "width": 205.0,
+                    "height_h1": 66.0
+                }
+            ],
+            "cell_text": "$78.91"
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0041",
+                    "text_raw": "BOLA UNlC 11 140MM C73",
+                    "polygon_coords": [
+                        [
+                            223.0,
+                            2203.0
+                        ],
+                        [
+                            997.0,
+                            2197.0
+                        ],
+                        [
+                            998.0,
+                            2258.0
+                        ],
+                        [
+                            224.0,
+                            2265.0
+                        ]
+                    ],
+                    "confidence": 95.46,
+                    "engine_source": "paddleocr",
+                    "cx": 609.4513644558805,
+                    "cy": 2230.758914036654,
+                    "xmin": 223.0,
+                    "ymin": 2197.0,
+                    "xmax": 998.0,
+                    "ymax": 2265.0,
+                    "height": 68.0,
+                    "width": 775.0,
+                    "height_h1": 67.0
+                }
+            ],
+            "cell_text": "BOLA UNlC 11 140MM C73"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0039",
+                    "text_raw": "$57.67",
+                    "polygon_coords": [
+                        [
+                            1077.0,
+                            2194.0
+                        ],
+                        [
+                            1288.0,
+                            2194.0
+                        ],
+                        [
+                            1288.0,
+                            2262.0
+                        ],
+                        [
+                            1077.0,
+                            2262.0
+                        ]
+                    ],
+                    "confidence": 99.98,
+                    "engine_source": "paddleocr",
+                    "cx": 1182.5,
+                    "cy": 2228.0,
+                    "xmin": 1077.0,
+                    "ymin": 2194.0,
+                    "xmax": 1288.0,
+                    "ymax": 2262.0,
+                    "height": 68.0,
+                    "width": 211.0,
+                    "height_h1": 67.0
+                }
+            ],
+            "cell_text": "$57.67"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0040",
+                    "text_raw": "$57.67*",
+                    "polygon_coords": [
+                        [
+                            1333.0,
+                            2192.0
+                        ],
+                        [
+                            1583.0,
+                            2181.0
+                        ],
+                        [
+                            1586.0,
+                            2254.0
+                        ],
+                        [
+                            1336.0,
+                            2266.0
+                        ]
+                    ],
+                    "confidence": 89.07,
+                    "engine_source": "paddleocr",
+                    "cx": 1459.2171252161475,
+                    "cy": 2223.264012240057,
+                    "xmin": 1333.0,
+                    "ymin": 2181.0,
+                    "xmax": 1586.0,
+                    "ymax": 2266.0,
+                    "height": 85.0,
+                    "width": 253.0,
+                    "height_h1": 84.0
+                }
+            ],
+            "cell_text": "$57.67*"
+        },
+        {
+            "words": [],
+            "cell_text": ""
+        }
+    ],
+    [
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0044",
+                    "text_raw": "PINT DIGITAL 250 NGQ",
+                    "polygon_coords": [
+                        [
+                            220.0,
+                            2293.0
+                        ],
+                        [
+                            905.0,
+                            2289.0
+                        ],
+                        [
+                            906.0,
+                            2351.0
+                        ],
+                        [
+                            220.0,
+                            2354.0
+                        ]
+                    ],
+                    "confidence": 99.38,
+                    "engine_source": "paddleocr",
+                    "cx": 563.6836258697027,
+                    "cy": 2321.752648640101,
+                    "xmin": 220.0,
+                    "ymin": 2289.0,
+                    "xmax": 906.0,
+                    "ymax": 2354.0,
+                    "height": 65.0,
+                    "width": 686.0,
+                    "height_h1": 64.0
+                }
+            ],
+            "cell_text": "PINT DIGITAL 250 NGQ"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0042",
+                    "text_raw": "$24.90",
+                    "polygon_coords": [
+                        [
+                            1028.0,
+                            2286.0
+                        ],
+                        [
+                            1239.0,
+                            2286.0
+                        ],
+                        [
+                            1239.0,
+                            2354.0
+                        ],
+                        [
+                            1028.0,
+                            2354.0
+                        ]
+                    ],
+                    "confidence": 99.98,
+                    "engine_source": "paddleocr",
+                    "cx": 1133.5,
+                    "cy": 2320.0,
+                    "xmin": 1028.0,
+                    "ymin": 2286.0,
+                    "xmax": 1239.0,
+                    "ymax": 2354.0,
+                    "height": 68.0,
+                    "width": 211.0,
+                    "height_h1": 67.0
+                }
+            ],
+            "cell_text": "$24.90"
+        },
+        {
+            "words": [
+                {
+                    "internal_id": "paddleocr_segment_0043",
+                    "text_raw": "$74.70",
+                    "polygon_coords": [
+                        [
+                            1288.0,
+                            2283.0
+                        ],
+                        [
+                            1493.0,
+                            2283.0
+                        ],
+                        [
+                            1493.0,
+                            2351.0
+                        ],
+                        [
+                            1288.0,
+                            2351.0
+                        ]
+                    ],
+                    "confidence": 99.99,
+                    "engine_source": "paddleocr",
+                    "cx": 1390.5,
+                    "cy": 2317.0,
+                    "xmin": 1288.0,
+                    "ymin": 2283.0,
+                    "xmax": 1493.0,
+                    "ymax": 2351.0,
+                    "height": 68.0,
+                    "width": 205.0,
+                    "height_h1": 67.0
+                }
+            ],
+            "cell_text": "$74.70"
+        },
+        {
+            "words": [],
+            "cell_text": ""
+        }
+    ]
+]

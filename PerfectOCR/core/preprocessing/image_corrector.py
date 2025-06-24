@@ -54,8 +54,12 @@ class ImageCorrector:
         corrected_image = gray_image
         
         # Pipeline de correcciones
-        corrected_image = self._apply_deskew(corrected_image, correction_plan)
-        corrected_image = self._apply_denoise(corrected_image, correction_plan)
+        if correction_plan.get('deskew', {}).get('angle', 0.0) != 0.0:
+            corrected_image = self._apply_deskew(corrected_image, correction_plan)
+
+        if correction_plan.get('denoise', {}).get('strength', 0) > 0:
+            corrected_image = self._apply_denoise(corrected_image, correction_plan)
+
         corrected_image = self._apply_contrast(corrected_image, correction_plan)
 
         return corrected_image

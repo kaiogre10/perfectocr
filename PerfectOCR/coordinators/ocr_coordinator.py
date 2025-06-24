@@ -11,6 +11,7 @@ from core.ocr.tesseract_wrapper import TesseractOCR
 from core.ocr.paddle_wrapper import PaddleOCRWrapper
 import time
 from utils.output_handlers import JsonOutputHandler
+from core.ocr.engine_manager import OCREngineManager
 
 logger = logging.getLogger(__name__)
 
@@ -20,44 +21,47 @@ class OCREngineCoordinator:
         self.project_root = project_root
         self.output_flags = output_flags
         self.json_output_handler = JsonOutputHandler()
-        self.num_workers = 2  # Conservador pero estable
-
-        # NUEVO: Verificar qué motores están habilitados
-        enabled_engines = config.get('enabled_engines', {
-            'tesseract': True,
-            'paddleocr': True
-        })
         
-        # Inicializar Tesseract solo si está habilitado
+        # OPTIMIZACIÓN: Workers adaptativos
+        enabled_engines = config.get('enabled_engines', {'tesseract': True, 'paddleocr': True})
+        enabled_count = sum(enabled_engines.values())
+        
+        if enabled_count == 2:
+            self.num_workers = 4  # Ambos motores
+        elif enabled_count == 1:
+            self.num_workers = 6  # Solo un motor
+        else:
+            self.num_workers = 2  # Fallback
+            
+        logger.info(f"OCR workers: {self.num_workers} para {enabled_count} motores")
+
+        # USAR SINGLETONS
         if enabled_engines.get('tesseract', True):
             tesseract_specific_config = self.ocr_config_from_workflow.get('tesseract')
             if tesseract_specific_config: 
-                self.tesseract = TesseractOCR(full_ocr_config=self.ocr_config_from_workflow) 
-                logger.info("TesseractOCR inicializado y habilitado.")
+                singleton_start = time.perf_counter()
+                self.tesseract = OCREngineManager.get_tesseract_engine(self.ocr_config_from_workflow)
+                singleton_time = time.perf_counter() - singleton_start
+                logger.info(f"Tesseract singleton: {singleton_time:.3f}s")
             else:
                 self.tesseract = None
-                logger.warning("Tesseract habilitado pero configuración no encontrada.")
         else:
             self.tesseract = None
-            logger.info("Tesseract deshabilitado en configuración.")
 
-        # Inicializar PaddleOCR solo si está habilitado
         if enabled_engines.get('paddleocr', True):
             paddle_specific_config = self.ocr_config_from_workflow.get('paddleocr')
             if paddle_specific_config:
-                self.paddle = PaddleOCRWrapper(config_dict=paddle_specific_config, project_root=self.project_root)
-                logger.info("PaddleOCRWrapper inicializado y habilitado.")
+                singleton_start = time.perf_counter()
+                self.paddle = OCREngineManager.get_paddle_engine(paddle_specific_config, self.project_root)
+                singleton_time = time.perf_counter() - singleton_start
+                logger.info(f"PaddleOCR singleton: {singleton_time:.3f}s")
             else:
                 self.paddle = None
-                logger.warning("PaddleOCR habilitado pero configuración no encontrada.")
         else:
             self.paddle = None
-            logger.info("PaddleOCR deshabilitado en configuración.")
         
-        # Validar que al menos un motor esté habilitado
         if not (self.tesseract or self.paddle):
-            logger.error("Ningún motor OCR está habilitado. Al menos uno debe estar activo.")
-            raise ValueError("No OCR engines enabled. At least one must be active.")
+            raise ValueError("No OCR engines enabled")
 
     def _run_tesseract_task(self, binary_image_for_ocr: np.ndarray, image_file_name: Optional[str] = None) -> Dict[str, Any]:
         """Tarea para ejecutar Tesseract OCR y manejar su resultado."""
@@ -177,61 +181,63 @@ class OCREngineCoordinator:
                    f"Quedan {len(filtered_words)} palabras.")
         return filtered_words
 
-    def run_ocr_parallel(
-        self,
-        preprocessed_images: Dict[str, np.ndarray],
-        noise_regions: List[List[int]], 
-        image_file_name: Optional[str] = None,
-        folder_origin: Optional[str] = "unknown_folder", 
-        image_pil_mode: Optional[str] = "unknown_mode" 
-    ) -> Tuple[Dict[str, Any], float]:
-        """
-        Ejecuta OCR en paralelo usando las imágenes preprocesadas específicas para cada motor.
-        """
+    def run_ocr_parallel(self, preprocessed_images: Dict[str, np.ndarray], noise_regions: List[List[int]], 
+                        image_file_name: Optional[str] = None, folder_origin: Optional[str] = "unknown_folder", 
+                        image_pil_mode: Optional[str] = "unknown_mode") -> Tuple[Dict[str, Any], float]:
+        
         start_time = time.perf_counter()
         
         folder_origin = self.ocr_config_from_workflow.get('default_folder_origin', "unknown_folder")
         image_pil_mode = self.ocr_config_from_workflow.get('default_image_pil_mode', "unknown_mode")
         
-        # Obtener las imágenes específicas para cada motor habilitado
         tesseract_image = preprocessed_images.get('tesseract') if self.tesseract else None
         paddle_image = preprocessed_images.get('paddleocr') if self.paddle else None
         
-        # Validar que tengamos imágenes para los motores habilitados
         if self.tesseract and tesseract_image is None:
-            logger.error("Tesseract habilitado pero falta imagen preprocesada")
             return {"error": "Missing Tesseract preprocessed image"}, time.perf_counter() - start_time
             
         if self.paddle and paddle_image is None:
-            logger.error("PaddleOCR habilitado pero falta imagen preprocesada")
             return {"error": "Missing PaddleOCR preprocessed image"}, time.perf_counter() - start_time
 
-        # Usar dimensiones de la primera imagen disponible
         if tesseract_image is not None:
             page_dims = {"width": tesseract_image.shape[1], "height": tesseract_image.shape[0]}
         elif paddle_image is not None:
             page_dims = {"width": paddle_image.shape[1], "height": paddle_image.shape[0]}
         else:
             page_dims = {"width": 0, "height": 0}
-        
-        # Ejecutar motores habilitados
+
+        # Ejecutar motores
+        execution_start = time.perf_counter()
         tess_result_payload = None
         padd_result_payload = None
         
         if self.tesseract and self.paddle:
-            # Ambos motores habilitados - ejecutar en paralelo
+            # Paralelo
             with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
                 future_tesseract = executor.submit(self._run_tesseract_task, tesseract_image, image_file_name)
                 padd_result_payload = self._run_paddle_task(paddle_image, image_file_name)
                 tess_result_payload = future_tesseract.result()
         elif self.tesseract:
-            # Solo Tesseract habilitado
             tess_result_payload = self._run_tesseract_task(tesseract_image, image_file_name)
         elif self.paddle:
-            # Solo PaddleOCR habilitado
             padd_result_payload = self._run_paddle_task(paddle_image, image_file_name)
 
+        execution_time = time.perf_counter() - execution_start
+
         # Consolidar resultados
+        output_data = self._consolidate_ocr_results(
+            tess_result_payload, padd_result_payload, 
+            image_file_name, folder_origin, image_pil_mode, page_dims, noise_regions
+        )
+
+        total_time = time.perf_counter() - start_time
+        
+        return output_data, total_time
+
+    def _consolidate_ocr_results(self, tess_result_payload: Optional[Dict], padd_result_payload: Optional[Dict],
+                               image_file_name: str, folder_origin: str, image_pil_mode: str, 
+                               page_dims: Dict, noise_regions: List) -> Dict[str, Any]:
+        
         output_data = {
             "metadata": {
                 "image": image_file_name,
@@ -250,17 +256,13 @@ class OCREngineCoordinator:
                 "overall_confidence": {}
             },
             "ocr_raw_results": {},
-            "visual_output": {
-                "tesseract_text": "",
-                "paddleocr_text": ""
-            }
+            "visual_output": {"tesseract_text": "", "paddleocr_text": ""}
         }
         
-        # Poblar resultados de Tesseract
+        # Tesseract
         if tess_result_payload and "error" not in tess_result_payload:
             raw_tess_words = tess_result_payload.get("recognized_text", {}).get("words", [])
             filtered_tess_words = self._filter_words_by_noise_regions(raw_tess_words, noise_regions)
-            logger.info(f"Tesseract: {len(raw_tess_words) - len(filtered_tess_words)} palabras de ruido filtradas espacialmente.")
             
             output_data["ocr_raw_results"]["tesseract"] = {
                 "words": filtered_tess_words,
@@ -277,9 +279,9 @@ class OCREngineCoordinator:
                     [word.get('text', '') for word in output_data["ocr_raw_results"]["tesseract"]["words"]]
                 )
         elif tess_result_payload and "error" in tess_result_payload:
-            output_data["ocr_raw_results"]["tesseract"] = {"error": tess_result_payload.get("error", "Error desconocido en Tesseract")}
+            output_data["ocr_raw_results"]["tesseract"] = {"error": tess_result_payload.get("error")}
 
-        # Poblar resultados de PaddleOCR
+        # PaddleOCR
         if padd_result_payload and "error" not in padd_result_payload:
             output_data["ocr_raw_results"]["paddleocr"] = {
                 "lines": padd_result_payload.get("recognized_text", {}).get("lines", []),
@@ -289,9 +291,9 @@ class OCREngineCoordinator:
             output_data["metadata"]["overall_confidence"]["paddleocr_lines_avg"] = padd_result_payload.get("overall_confidence_avg_lines")
             output_data["visual_output"]["paddleocr_text"] = output_data["ocr_raw_results"]["paddleocr"]["full_text"]
         elif padd_result_payload and "error" in padd_result_payload:
-            output_data["ocr_raw_results"]["paddleocr"] = {"error": padd_result_payload.get("error", "Error desconocido en PaddleOCR")}
+            output_data["ocr_raw_results"]["paddleocr"] = {"error": padd_result_payload.get("error")}
         
-        # Guardar el resultado crudo del OCR si el flag está activo
+        # Guardar JSON
         ocr_json_path = None
         if self.output_flags.get('ocr_raw', False) and image_file_name:
             output_dir = self.ocr_config_from_workflow.get('output_dir', './output')
@@ -301,5 +303,28 @@ class OCREngineCoordinator:
                 output_dir=output_dir,
                 file_name_with_extension=f"{base_name}_ocr_raw_results.json"
             )
+            
         output_data["ocr_raw_json_path"] = ocr_json_path
-        return output_data, time.perf_counter() - start_time
+        return output_data
+
+    def validate_ocr_results(self, ocr_results: Optional[dict], filename: str) -> bool:
+        """MOVIDO DESDE MAIN.PY - Valida resultados OCR"""
+        if not isinstance(ocr_results, dict): 
+            return False
+        
+        ocr_raw_results = ocr_results.get("ocr_raw_results", {})
+        enabled_engines = ocr_results.get("metadata", {}).get("enabled_engines", {})
+        
+        has_valid_text = False
+        
+        if enabled_engines.get("tesseract", False):
+            tesseract_data = ocr_raw_results.get("tesseract", {})
+            if "error" not in tesseract_data and len(tesseract_data.get("words", [])) > 0:
+                has_valid_text = True
+        
+        if enabled_engines.get("paddleocr", False):
+            paddle_data = ocr_raw_results.get("paddleocr", {})
+            if "error" not in paddle_data and len(paddle_data.get("lines", [])) > 0:
+                has_valid_text = True
+        
+        return has_valid_text

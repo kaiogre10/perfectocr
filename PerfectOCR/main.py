@@ -12,7 +12,6 @@ import shutil
 from typing import Dict, Optional, Any, Tuple, List
 from coordinators.input_validation_coordinator import InputValidationCoordinator
 from coordinators.preprocessing_coordinator import PreprocessingCoordinator
-from coordinators.spatial_coordinator import SpatialAnalyzerCoordinator
 from coordinators.ocr_coordinator import OCREngineCoordinator
 from coordinators.table_extractor_coordinator import TableExtractorCoordinator
 from coordinators.postprocessing_coordinator import PostprocessingCoordinator
@@ -21,6 +20,8 @@ from utils.output_handlers import JsonOutputHandler, TextOutputHandler, ExcelOut
 from utils.encoders import NumpyEncoder
 from core.preprocessing import toolbox
 from utils.config_loader import ConfigLoader
+from utils.batch_tools import get_optimal_workers
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Configuración conservadora para estabilidad
 os.environ.update({
@@ -78,7 +79,6 @@ class PerfectOCRWorkflow:
         self._shared_folder_available = None  # None = no verificado, True/False 
         self._input_validation_coordinator: Optional[InputValidationCoordinator] = None
         self._preprocessing_coordinator: Optional[PreprocessingCoordinator] = None
-        self._spatial_analyzer_coordinator: Optional[SpatialAnalyzerCoordinator] = None
         self._ocr_coordinator: Optional[OCREngineCoordinator] = None
         self._table_extractor_coordinator: Optional[TableExtractorCoordinator] = None
         self._postprocessing_coordinator: Optional[PostprocessingCoordinator] = None
@@ -86,11 +86,10 @@ class PerfectOCRWorkflow:
         self.json_output_handler = JsonOutputHandler(config=self.output_config)
         self.excel_output_handler = ExcelOutputHandler()
         logger.debug("PerfectOCRWorkflow listo para inicialización bajo demanda de coordinadores.")
-
-        # Al inicio, carga la configuración usando el ConfigLoader
         config_loader = ConfigLoader(MASTER_CONFIG_FILE)
         table_extractor_config = config_loader.get_table_extractor_config()
         output_flags = config_loader.config.get('output_config', {}).get('enabled_outputs', {})
+        self.output_flags = output_flags
 
         # Al crear el workflow o el coordinador:
         self._table_extractor_coordinator = TableExtractorCoordinator(
@@ -127,7 +126,6 @@ class PerfectOCRWorkflow:
     def _extract_config_sections(self):
         self.workflow_config = self.config.get('workflow', {})
         self.image_preparation_config = self.config.get('image_preparation', {})
-        self.spatial_analyzer_config = self.config.get('spatial_analyzer', {})
         self.ocr_config = self.config.get('ocr', {})
         self.output_config = self.config.get('output_config', {})
         self.table_extractor_config = self.config.get('table_extractor', {})
@@ -145,12 +143,6 @@ class PerfectOCRWorkflow:
         if self._preprocessing_coordinator is None:
             self._preprocessing_coordinator = PreprocessingCoordinator(project_root=self.project_root)
         return self._preprocessing_coordinator
-
-    @property
-    def spatial_analyzer_coordinator(self) -> SpatialAnalyzerCoordinator:
-        if self._spatial_analyzer_coordinator is None:
-            self._spatial_analyzer_coordinator = SpatialAnalyzerCoordinator(config=self.spatial_analyzer_config, project_root=self.project_root)
-        return self._spatial_analyzer_coordinator
 
     @property
     def ocr_coordinator(self) -> OCREngineCoordinator:
@@ -259,158 +251,130 @@ class PerfectOCRWorkflow:
             return None
 
     def process_document(self, input_path: str, output_dir_override: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        workflow_start = time.perf_counter()
         processing_times_summary: Dict[str, float] = {}
         original_file_name = os.path.basename(input_path)
         base_name = os.path.splitext(original_file_name)[0]
-        logger.info(f"Iniciando procesamiento de documento: {original_file_name}")
+        
+        logger.info(f"Procesando: {original_file_name}")
 
+        # FASE 0: Verificar potenciador
+        enhancement_start = time.perf_counter()
         enhanced_results = self._get_enhanced_data_from_shared_folder(input_path)
+        enhancement_time = time.perf_counter() - enhancement_start
+        processing_times_summary["0_enhancement_check"] = round(enhancement_time, 4)
 
         if enhanced_results:
-            logger.info("Continuando flujo en modo Híbrido desde la Fase 4: OCR.")
+            logger.info("Modo híbrido: saltando a OCR")
             ocr_images_dict = enhanced_results.get("ocr_images", {})
             noise_regions = enhanced_results.get("noise_regions", [])
+            processing_times_summary["1_input_validation"] = 0.0
+            processing_times_summary["2_preprocessing"] = 0.0
         else:
-            if self._shared_folder_available is None:
-                logger.info("Potenciador no utilizado. Procediendo en modo Standalone desde la Fase 1.")
-            
-            # FASE 1: VALIDACIÓN (Local)
+            # FASE 1: VALIDACIÓN
+            phase1_start = time.perf_counter()
             quality_observations, correction_plans, image_loaded, time_val = self.input_validation_coordinator.validate_and_assess_image(input_path)
+            phase1_time = time.perf_counter() - phase1_start
             processing_times_summary["1_input_validation"] = round(time_val, 4)
+            
+            logger.info(f"Validación: {time_val:.3f}s")
+            
             if image_loaded is None or not correction_plans:
-                return self._build_error_response("error_input_validation", original_file_name, "Fallo en carga o planificación.", "input_validation")
+                return self._build_error_response("error_input_validation", original_file_name, "Fallo en validación", "input_validation")
 
-            # FASE 2: PREPROCESAMIENTO (Local)
+            # FASE 2: PREPROCESAMIENTO
+            phase2_start = time.perf_counter()
             preproc_results, time_prep = self.preprocessing_coordinator.apply_preprocessing_pipelines(image_loaded, correction_plans, input_path)
+            phase2_time = time.perf_counter() - phase2_start
             processing_times_summary["2_preprocessing"] = round(time_prep, 4)
+            
+            logger.info(f"Preprocesamiento: {time_prep:.3f}s")
+            
             if not preproc_results or "ocr_images" not in preproc_results:
-                return self._build_error_response("error_preprocessing", original_file_name, "Fallo en la generación de imágenes para OCR.", "preprocessing")
+                return self._build_error_response("error_preprocessing", original_file_name, "Fallo en preprocesamiento", "preprocessing")
             
             ocr_images_dict = preproc_results["ocr_images"]
-            spatial_image = preproc_results.get("spatial_image")
+            noise_regions = []
 
-            # FASE 3: ANÁLISIS ESPACIAL (Local)
-            image_for_spatial_analysis = spatial_image
-            if image_for_spatial_analysis is None:
-                # Fallback por si la imagen espacial no se generó
-                logger.warning("Imagen espacial dedicada no encontrada. Usando la de Tesseract como fallback.")
-                tesseract_image = ocr_images_dict.get('tesseract')
-                if tesseract_image is not None:
-                    # La imagen de tesseract tiene texto negro (0), la invertimos para el análisis
-                    image_for_spatial_analysis = cv2.bitwise_not(tesseract_image)
-
-            if image_for_spatial_analysis is not None:
-                self.spatial_analyzer_coordinator.analyze_image(image_for_spatial_analysis)
-                noise_regions = self.spatial_analyzer_coordinator.detect_noise_regions()
-                # NO limpiar datos aquí - se necesitan para la extracción de tabla
-            else:
-                noise_regions = []
-                logger.error("No se pudo obtener ninguna imagen para el análisis espacial.")
-
-        # --- EL FLUJO SE UNIFICA AQUÍ ---
         current_output_dir = output_dir_override if output_dir_override else self.workflow_config.get('output_folder')
         os.makedirs(current_output_dir, exist_ok=True)
         
         # FASE 4: OCR
+        phase4_start = time.perf_counter()
         ocr_results_payload, time_ocr = self.ocr_coordinator.run_ocr_parallel(ocr_images_dict, noise_regions, original_file_name)
+        phase4_time = time.perf_counter() - phase4_start
         processing_times_summary["4_ocr"] = round(time_ocr, 4)
-        if not self._validate_ocr_results(ocr_results_payload, original_file_name):
-            return self._build_error_response("error_ocr", original_file_name, "OCR no produjo texto utilizable.", "ocr_validation")
+        
+        logger.info(f"OCR: {time_ocr:.3f}s")
+        
+        if not self.ocr_coordinator.validate_ocr_results(ocr_results_payload, original_file_name):
+            return self._build_error_response("error_ocr", original_file_name, "OCR sin resultados", "ocr_validation")
+        
         ocr_results_json_path = ocr_results_payload.get("ocr_raw_json_path")
 
-        # FASE 5: Reconstrucción de líneas (nuevo método en TableExtractorCoordinator)
+        # FASE 5: Reconstrucción de líneas
+        phase5_start = time.perf_counter()
         reconstructed_lines = self.table_extractor_coordinator.reconstruct_lines(
             ocr_results=ocr_results_payload,
             base_name=base_name,
             output_dir=current_output_dir
         )
+        phase5_time = time.perf_counter() - phase5_start
+        processing_times_summary["5_line_reconstruction"] = round(phase5_time, 4)
+        logger.info(f"Reconstrucción: {phase5_time:.3f}s")
 
         # FASE 5.5: Limpieza de texto
-        output_dir = output_dir_override if output_dir_override else os.path.join(self.project_root, "output")
+        phase55_start = time.perf_counter()
         cleaned_lines, corrections_count = self.text_cleaning_coordinator.clean_reconstructed_lines(
             reconstructed_lines_by_engine=reconstructed_lines,
-            output_dir=output_dir,
+            output_dir=current_output_dir,
             doc_id=base_name
         )
-        if corrections_count > 0:
-            logger.info(f"Limpieza de texto completada: {corrections_count} líneas contenían correcciones.")
+        phase55_time = time.perf_counter() - phase55_start
+        processing_times_summary["5.5_text_cleaning"] = round(phase55_time, 4)
+        logger.info(f"Limpieza: {phase55_time:.3f}s")
 
-        # FASE 6: Extracción de tabla usando líneas limpias
+        # FASE 6: Extracción de tabla
+        phase6_start = time.perf_counter()
         table_extraction_payload = self.table_extractor_coordinator.extract_table_from_cleaned_lines(
             cleaned_lines=cleaned_lines,
             base_name=base_name,
             output_dir=current_output_dir
         )
-        
-        # --- AÑADE ESTOS CAMPOS PARA EL POSTPROCESSING ---
+        phase6_time = time.perf_counter() - phase6_start
+        processing_times_summary["6_table_extraction"] = round(phase6_time, 4)
+        logger.info(f"Extracción: {phase6_time:.3f}s")
+
+        # FASE 7: Postprocesamiento semántico
+        phase7_start = time.perf_counter()
         table_extraction_payload["output_dir"] = current_output_dir
         table_extraction_payload["doc_id"] = base_name
 
-        # Ahora sí, pásalo al postprocesamiento
         semantically_corrected_payload = self.postprocessing_coordinator.correct_table_structure(
             extraction_payload=table_extraction_payload
         )
-        
-        # Usar el payload corregido para la respuesta final
+        phase7_time = time.perf_counter() - phase7_start
+        processing_times_summary["7_semantic_correction"] = round(phase7_time, 4)
+        logger.info(f"Corrección semántica: {phase7_time:.3f}s")
+
+        # RESPUESTA FINAL
         final_response = self._build_final_response(
             original_file_name,
             ocr_results_json_path,
             semantically_corrected_payload
         )
         
-        # Añadir tiempos de procesamiento
-        if 'metadata' not in final_response: final_response['metadata'] = {}
+        total_workflow_time = time.perf_counter() - workflow_start
+        processing_times_summary["total_workflow"] = round(total_workflow_time, 4)
+        
+        if 'metadata' not in final_response: 
+            final_response['metadata'] = {}
         final_response['metadata']['processing_times_seconds'] = processing_times_summary
-
-        structured_table_path = table_extraction_payload.get("outputs", {}).get("structured_table_json_path")
+        
+        logger.info(f"Total: {total_workflow_time:.3f}s")
 
         return final_response
     
-    # --- Métodos de ayuda (sin cambios) ---
-    def _validate_ocr_results(self, ocr_results: Optional[dict], filename: str) -> bool:
-        """
-        Valida que los resultados de OCR contengan texto utilizable.
-        Ahora adaptado para manejar motores habilitados/deshabilitados.
-        """
-        if not isinstance(ocr_results, dict): 
-            return False
-        
-        ocr_raw_results = ocr_results.get("ocr_raw_results", {})
-        enabled_engines = ocr_results.get("metadata", {}).get("enabled_engines", {})
-        
-        # Verificar si hay texto utilizable en al menos uno de los motores habilitados
-        has_valid_text = False
-        
-        # Verificar Tesseract si está habilitado
-        if enabled_engines.get("tesseract", False):
-            tesseract_data = ocr_raw_results.get("tesseract", {})
-            if "error" not in tesseract_data:
-                has_tesseract_words = bool(tesseract_data.get("words", []))
-                if has_tesseract_words:
-                    has_valid_text = True
-                    logger.debug(f"Tesseract produjo {len(tesseract_data.get('words', []))} palabras para {filename}")
-            else:
-                logger.warning(f"Tesseract tuvo error para {filename}: {tesseract_data.get('error')}")
-        
-        # Verificar PaddleOCR si está habilitado
-        if enabled_engines.get("paddleocr", False):
-            paddle_data = ocr_raw_results.get("paddleocr", {})
-            if "error" not in paddle_data:
-                has_paddle_lines = bool(paddle_data.get("lines", []))
-                if has_paddle_lines:
-                    has_valid_text = True
-                    logger.debug(f"PaddleOCR produjo {len(paddle_data.get('lines', []))} líneas para {filename}")
-            else:
-                logger.warning(f"PaddleOCR tuvo error para {filename}: {paddle_data.get('error')}")
-        
-        if not has_valid_text:
-            enabled_list = [engine for engine, enabled in enabled_engines.items() if enabled]
-            logger.error(f"OCR no produjo texto utilizable para {filename}. "
-                        f"Motores habilitados: {enabled_list}")
-            return False
-
-        return True
-
     def _build_error_response(self, status: str, filename: str, message: str, stage: Optional[str] = None) -> dict:
         error_details = {"message": message}
         if stage: error_details["stage"] = stage
@@ -466,7 +430,6 @@ class PerfectOCRWorkflow:
         except Exception as e:
             logger.error(f"Error procesando imagen {image_path}: {e}")
             return {"error": str(e), "image": image_path}
-
 
 def main():
     """

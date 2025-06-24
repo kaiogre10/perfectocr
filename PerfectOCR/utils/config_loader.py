@@ -72,20 +72,7 @@ class ConfigLoader:
             denoise_config=paddle_rules.get('denoise', {}),
             contrast_config=paddle_rules.get('contrast_enhancement', {})
         )
-        
-        # Configuración para Spatial Analysis
-        spatial_rules = quality_rules.get('spatial_analysis', {})
-        engine_configs['spatial_analysis'] = PreprocessingEngineConfig(
-            needs_binarization=True,
-            invert_binary=True,  # Texto blanco sobre negro
-            default_binarization={
-                'block_size': spatial_rules.get('binarization', {}).get('block_sizes_map', [15])[0],
-                'c_value': spatial_rules.get('binarization', {}).get('adaptive_c_value', 5)
-            },
-            denoise_config=spatial_rules.get('denoise', {}),
-            contrast_config=spatial_rules.get('contrast_enhancement', {})
-        )
-        
+                
         return engine_configs
     
     def get_workflow_config(self) -> Dict[str, Any]:
@@ -95,10 +82,6 @@ class ConfigLoader:
     def get_ocr_config(self) -> Dict[str, Any]:
         """Obtiene configuración de motores OCR."""
         return self.config.get('ocr', {})
-    
-    def get_spatial_analyzer_config(self) -> Dict[str, Any]:
-        """Obtiene configuración del analizador espacial."""
-        return self.config.get('spatial_analyzer', {})
     
     def get_table_extractor_config(self) -> Dict[str, Any]:
         """Obtiene configuración del extractor de tablas."""

@@ -62,11 +62,6 @@ class PreprocessingCoordinator:
             },
             'paddleocr': {
                 'needs_binarization': False
-            },
-            'spatial_analysis': {
-                'needs_binarization': True,
-                'invert_binary': True,
-                'default_binarization': {'block_size': 15, 'c_value': 5}
             }
         }
         
@@ -120,7 +115,7 @@ class PreprocessingCoordinator:
         
         if not valid_plans:
             logger.warning(f"Ningún motor válido encontrado en correction_plans para {image_path_for_log}")
-            return {"ocr_images": {}, "spatial_image": None, "preprocessing_parameters_used": correction_plans}
+            return {"ocr_images": {}, "preprocessing_parameters_used": correction_plans}
         
         # Ajustar workers según planes válidos
         active_workers = min(len(valid_plans), self.max_workers)
@@ -138,21 +133,16 @@ class PreprocessingCoordinator:
             
             # Recoger resultados
             ocr_images = {}
-            spatial_image = None
             
             for engine, future in futures.items():
                 try:
                     result = future.result()
-                    if engine == 'spatial_analysis':
-                        spatial_image = result
-                    else:
-                        ocr_images[engine] = result
+                    ocr_images[engine] = result
                 except Exception as e:
                     logger.error(f"Error procesando {engine} para {image_path_for_log}: {e}")
         
         return {
             "ocr_images": ocr_images,
-            "spatial_image": spatial_image,
             "preprocessing_parameters_used": correction_plans
         }
 
@@ -176,26 +166,19 @@ class PreprocessingCoordinator:
                     futures[engine] = executor.submit(self._process_for_tesseract_legacy, gray_image, plan)
                 elif engine == 'paddleocr':
                     futures[engine] = executor.submit(self._process_for_paddleocr_legacy, gray_image, plan)
-                elif engine == 'spatial_analysis':
-                    futures['spatial'] = executor.submit(self._process_for_spatial_analysis_legacy, gray_image, plan)
             
             # Recoger resultados
             ocr_images = {}
-            spatial_image = None
             
             for key, future in futures.items():
                 try:
                     result = future.result()
-                    if key == 'spatial':
-                        spatial_image = result
-                    else:
-                        ocr_images[key] = result
+                    ocr_images[key] = result
                 except Exception as e:
                     logger.error(f"Error procesando {key} para {image_path_for_log}: {e}")
         
         return {
             "ocr_images": ocr_images,
-            "spatial_image": spatial_image,
             "preprocessing_parameters_used": correction_plans
         }
 
@@ -248,25 +231,10 @@ class PreprocessingCoordinator:
         """Procesamiento legacy para PaddleOCR."""
         return self.corrector.apply_grayscale_corrections(gray_image.copy(), correction_plan)
 
-    def _process_for_spatial_analysis_legacy(self, gray_image: np.ndarray, correction_plan: Dict[str, Any]) -> np.ndarray:
-        """Procesamiento legacy para análisis espacial."""
-        from core.preprocessing import toolbox
-        
-        corrected_image = self.corrector.apply_grayscale_corrections(gray_image.copy(), correction_plan)
-        
-        binarization_params = correction_plan.get('binarization', {'block_size': 15, 'c_value': 5})
-        
-        return toolbox.apply_binarization(
-            corrected_image,
-            block_size=binarization_params['block_size'],
-            c_value=binarization_params['c_value'],
-            invert=True  # Texto blanco sobre negro
-        )
-
     def _merge_plan_with_yaml_config(
         self,
         correction_plan: Dict[str, Any],
-        engine_config  # ← ahora puede ser dataclass o dict legacy
+        engine_config 
     ) -> Dict[str, Any]:
         """
         Combina el correction_plan con la configuración proveniente de YAML.

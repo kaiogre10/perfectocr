@@ -46,7 +46,7 @@ class TableExtractorCoordinator:
             return {}
 
         line_reconstructor = LineReconstructor(width, height, self.line_reconstructor_params)
-        reconstructed_lines_by_engine = line_reconstructor.reconstruct_all_ocr_outputs_parallel(
+        reconstructed_lines_by_engine = line_reconstructor.reconstruct_all_ocr_outputs_sequential(
             ocr_results.get("ocr_raw_results", {}).get("tesseract", {}).get("words", []),
             ocr_results.get("ocr_raw_results", {}).get("paddleocr", {}).get("lines", [])
         )

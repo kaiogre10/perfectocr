@@ -10,16 +10,22 @@ logger = logging.getLogger(__name__)
 
 class InputValidationCoordinator:
     def __init__(self, config: Dict, project_root: str):
-        self.quality_evaluator = ImageQualityEvaluator(config=config.get('quality_assessment_rules', {}))
         self.project_root = project_root
         
-        # NUEVO: Obtener configuración de motores habilitados
+        # OPTIMIZACIÓN: Obtener motores habilitados PRIMERO
         self.enabled_engines = self._get_enabled_engines()
+        
+        # OPTIMIZACIÓN: Pasar motores habilitados al evaluador
+        self.quality_evaluator = ImageQualityEvaluator(
+            config=config.get('quality_assessment_rules', {}),
+            enabled_engines=self.enabled_engines
+        )
+        
+        logger.info(f"InputValidationCoordinator inicializado para motores: {[k for k, v in self.enabled_engines.items() if v]}")
     
     def _get_enabled_engines(self) -> Dict[str, bool]:
         """Obtiene la configuración de motores habilitados desde YAML."""
         try:
-            # Importar aquí para evitar dependencias circulares
             from utils.config_loader import ConfigLoader
             config_path = os.path.join(self.project_root, "config", "master_config.yaml")
             
@@ -37,10 +43,7 @@ class InputValidationCoordinator:
         return {'tesseract': True, 'paddleocr': True}
 
     def validate_and_assess_image(self, input_path: str) -> Tuple[Optional[List[str]], Optional[Dict[str, Any]], Optional[Any], float]:
-        """
-        Carga la imagen y llama al evaluador para obtener un diccionario de planes de corrección.
-        Solo genera planes para motores habilitados.
-        """
+        """Carga imagen y genera planes SOLO para motores habilitados."""
         start_time = time.perf_counter()
         
         try:
@@ -48,24 +51,18 @@ class InputValidationCoordinator:
             if image_array is None:
                 return ["error_loading_image"], None, None, time.perf_counter() - start_time
 
+            # OPTIMIZACIÓN: El evaluador ya solo procesa motores habilitados
             observations, correction_plans = self.quality_evaluator.evaluate_and_create_correction_plan(image_array)
             
-            # NUEVO: Filtrar planes solo para motores habilitados
-            filtered_plans = {}
-            for engine, plan in correction_plans.items():
-                if engine in self.enabled_engines and self.enabled_engines[engine]:
-                    filtered_plans[engine] = plan
-                elif engine == 'spatial_analysis':
-                    # El análisis espacial siempre se incluye si está en los planes
-                    filtered_plans[engine] = plan
-                else:
-                    logger.debug(f"Motor {engine} deshabilitado, omitiendo plan de corrección")
-            
-            if not filtered_plans:
-                logger.warning("Ningún motor habilitado encontrado en los planes de corrección")
+            # Verificar que tenemos planes para motores habilitados
+            if not correction_plans:
+                logger.warning("No se generaron planes de corrección para ningún motor habilitado")
                 return ["no_enabled_engines"], None, None, time.perf_counter() - start_time
             
-            return observations, filtered_plans, image_array, time.perf_counter() - start_time
+            validation_time = time.perf_counter() - start_time
+            logger.debug(f"Validación completada: {len(correction_plans)} motores, {len(observations)} observaciones ({validation_time:.3f}s)")
+            
+            return observations, correction_plans, image_array, validation_time
             
         except Exception as e:
             logger.error(f"Error en validación de imagen: {e}")

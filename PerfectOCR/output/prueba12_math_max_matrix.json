@@ -1,0 +1,71 @@
+{
+    "headers": [
+        "CANT.",
+        "DESCRIPCION",
+        "PRECIO",
+        "IMPORTE"
+    ],
+    "semantic_types": [
+        "cuantitativo, c",
+        "descriptivo",
+        "cuantitativo, pu",
+        "cuantitativo, mtl"
+    ],
+    "matrix": [
+        [
+            "2",
+            "HOJA CTA CAN 09 DIEM100",
+            "55.50",
+            "111"
+        ],
+        [
+            "1",
+            "FOMY C DIA AM C/10",
+            "30",
+            "30"
+        ],
+        [
+            "3.00",
+            "RAFIA DECORATIVA AZ CL",
+            "18.90",
+            "56.70"
+        ],
+        [
+            "1",
+            "PLT 20 SURT C/12",
+            "99.50",
+            "99.50"
+        ],
+        [
+            "3",
+            "CHINA AM CAN C/5O",
+            "53.70",
+            "161.10"
+        ],
+        [
+            "1",
+            "LUSTRE AM CAN C/25",
+            "66.90",
+            "66.90"
+        ],
+        [
+            "1",
+            "BOLA UNlC 9 100MM C/10",
+            "78.91",
+            "78.91"
+        ],
+        [
+            "1.00",
+            "BOLA UNlC 11 140MM C73",
+            "57.67",
+            "57.67"
+        ],
+        [
+            "3.00",
+            "PINT DIGITAL 250 NGQ",
+            "24.90",
+            "74.70"
+        ]
+    ],
+    "semantic_format": "math_assigned"
+}

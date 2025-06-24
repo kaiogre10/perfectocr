@@ -7,6 +7,7 @@ from shapely.geometry import Polygon
 from shapely.ops import unary_union
 from utils.geometric import get_shapely_polygon, tighten_geometry
 from concurrent.futures import ThreadPoolExecutor
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,6 @@ class LineReconstructor:
                 logger.warning(f"Pocos puntos válidos ({len(float_poly_coords)}) después de convertir para {engine_name} item {element_idx} ('{text[:20]}...').")
                 return None
 
-            # ---------- NUEVO: contracción opcional ----------
             height_h1: Optional[float] = None
             shapely_poly = None
             if self.use_tighten_geometry:
@@ -123,9 +123,8 @@ class LineReconstructor:
                     float_poly_coords = tight_res['polygon_coords']
                     shapely_poly = tight_res['shapely_polygon']
                     height_h1 = tight_res['height_h1']
-            # -----------------------------------------------
 
-            if shapely_poly is None:  # sin contracción o falló
+            if shapely_poly is None:  
                 shapely_poly = get_shapely_polygon(float_poly_coords)
 
             if not shapely_poly or shapely_poly.is_empty or not shapely_poly.is_valid:
@@ -251,56 +250,49 @@ class LineReconstructor:
         }
 
     def _reconstruct_for_engine(self, raw_ocr_elements: List[Dict], engine_name: str, item_type: str) -> List[Dict[str, Any]]:
-        logger.info(f"Iniciando reconstrucción de líneas para el motor: {engine_name}")
+        engine_start = time.perf_counter()
+        
+        # Preparación de elementos
+        prep_start = time.perf_counter()
         prepared_elements = [el for el in [self._prepare_ocr_element(item, i, engine_name, item_type) 
                                            for i, item in enumerate(raw_ocr_elements)] if el]
+        prep_time = time.perf_counter() - prep_start
         
         if not prepared_elements:
-            logger.warning(f"No se prepararon elementos OCR para {engine_name}.")
+            logger.warning(f"No se prepararon elementos OCR para {engine_name}")
             return []
 
+        # Agrupamiento
+        group_start = time.perf_counter()
         groups = self._group_elements_by_vertical_overlap(prepared_elements)
+        group_time = time.perf_counter() - group_start
         
+        # Construcción de líneas
+        build_start = time.perf_counter()
         reconstructed_lines: List[Dict[str, Any]] = []
         for i, group in enumerate(groups):
             line_obj = self._build_line_output(group, i, engine_name)
             if line_obj:
                 reconstructed_lines.append(line_obj)
+        build_time = time.perf_counter() - build_start
+
+        total_time = time.perf_counter() - engine_start
+        logger.info(f"LineReconstructor {engine_name}: {len(reconstructed_lines)} líneas ({total_time:.3f}s) - prep:{prep_time:.3f}s, group:{group_time:.3f}s, build:{build_time:.3f}s")
 
         return reconstructed_lines
 
-    def reconstruct_all_ocr_outputs_parallel(self, 
-                                            tesseract_raw_words: List[Dict], 
-                                            paddle_raw_segments: List[Dict]) -> Dict[str, List[Dict]]:
+    def reconstruct_all_ocr_outputs_sequential(self, tesseract_raw_words: List[Dict], paddle_raw_segments: List[Dict]) -> Dict[str, List[Dict]]:
         results = {
             "tesseract_lines": [],
             "paddle_lines": []
         }
-        # Usar max_workers=2 para procesar Tesseract y PaddleOCR en paralelo
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix='LineRecon') as executor:
-            future_tess = None
-            if tesseract_raw_words:
-                #logger.info("Enviando tarea de reconstrucción de Tesseract al pool de hilos...")
-                future_tess = executor.submit(self._reconstruct_for_engine, tesseract_raw_words, "tesseract", "word")
-            
-            future_padd = None
-            if paddle_raw_segments:
-                #logger.info("Enviando tarea de reconstrucción de PaddleOCR al pool de hilos...")
-                future_padd = executor.submit(self._reconstruct_for_engine, paddle_raw_segments, "paddleocr", "segment")
-
-            if future_tess:
-                try:
-                    results["tesseract_lines"] = future_tess.result()
-                   # logger.info(f"Reconstrucción de Tesseract completada en hilo. {len(results['tesseract_lines'])} líneas.")
-                except Exception as e:
-                    logger.error(f"Error reconstruyendo líneas de Tesseract en paralelo: {e}", exc_info=True)
-            
-            if future_padd:
-                try:
-                    results["paddle_lines"] = future_padd.result()
-                   # logger.info(f"Reconstrucción de PaddleOCR completada en hilo. {len(results['paddle_lines'])} líneas.")
-                except Exception as e:
-                    logger.error(f"Error reconstruyendo líneas de PaddleOCR en paralelo: {e}", exc_info=True)
         
-        logger.info(f"Reconstrucción paralela por motor completada. Tesseract: {len(results['tesseract_lines'])} líneas, PaddleOCR: {len(results['paddle_lines'])} líneas.")
+        # Secuencial - más eficiente para operaciones <50ms
+        if tesseract_raw_words:
+            results["tesseract_lines"] = self._reconstruct_for_engine(tesseract_raw_words, "tesseract", "word")
+        
+        if paddle_raw_segments:
+            results["paddle_lines"] = self._reconstruct_for_engine(paddle_raw_segments, "paddleocr", "segment")
+        
+        logger.info(f"Reconstrucción secuencial completada. Tesseract: {len(results['tesseract_lines'])} líneas, PaddleOCR: {len(results['paddle_lines'])} líneas.")
         return results

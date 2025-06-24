@@ -1,0 +1,110 @@
+{
+    "headers": [
+        "Cant.",
+        "Producto",
+        "P.U.C.D:",
+        "Importe",
+        "P.S."
+    ],
+    "semantic_types": [
+        "cuantitativo, c",
+        "descriptivo",
+        "cuantitativo, pu",
+        "cuantitativo, mtl",
+        "descriptivo"
+    ],
+    "matrix": [
+        [
+            "3",
+            "VINCI 25 AM LIM 50 C/10",
+            "85.50",
+            "256.50",
+            "12"
+        ],
+        [
+            "5",
+            "PUNTILLAS PM 0.5",
+            "9.49",
+            "47.45",
+            "15"
+        ],
+        [
+            "1",
+            "PASTA CTA SURT C/25",
+            "135",
+            "135",
+            "12"
+        ],
+        [
+            "2",
+            "FOLDER CTA CR C/10",
+            "22.50",
+            "45",
+            "5"
+        ],
+        [
+            "1",
+            "SOBRE C/ROND CTA C/10",
+            "49.80",
+            "49.80",
+            "7"
+        ],
+        [
+            "2",
+            "ri CREPE NGO C/10",
+            "48",
+            "96",
+            ""
+        ],
+        [
+            "1",
+            "KM MED NG C/12",
+            "39.90",
+            "39.90",
+            "5"
+        ],
+        [
+            "1",
+            "KM FINO NG C/12",
+            "42.30",
+            "42.30",
+            ""
+        ],
+        [
+            "3",
+            "CARTA DIAM CANARIO C/10",
+            "30",
+            "90",
+            "5"
+        ],
+        [
+            "10",
+            "PLACA UNIC 25X25X1",
+            "2.98",
+            "29.76",
+            "5"
+        ],
+        [
+            "1",
+            "PAL0 RED DELG 4X60 K 95",
+            "59.28",
+            "59.28",
+            "2"
+        ],
+        [
+            "1",
+            "GLOBO 5 SURT C/100",
+            "34.93",
+            "34.93",
+            "50"
+        ],
+        [
+            "2",
+            "CART FLUORESC AM C/10",
+            "49.10",
+            "98.20",
+            "8"
+        ]
+    ],
+    "semantic_format": "math_assigned"
+}

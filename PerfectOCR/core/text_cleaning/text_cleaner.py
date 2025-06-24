@@ -30,8 +30,8 @@ class TextCleaner:
         self.min_confidence_for_interaction = self.config.get('min_confidence_for_interaction', 70.0)
         
         # Cargar modelo si se requiere embeddings
-        if self.use_embeddings:
-            embedding_manager.load_model(self.embedding_model)
+        # if self.use_embeddings:
+        #     embedding_manager.load_model(self.embedding_model)
         
         logger.info(f"TextCleaner inicializado - Activación condicional por confianza")
 

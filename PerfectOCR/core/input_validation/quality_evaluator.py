@@ -12,8 +12,10 @@ class ImageQualityEvaluator:
     Analiza la calidad de una imagen y genera planes de corrección personalizados
     para diferentes motores de OCR, utilizando reglas definidas en un archivo de configuración.
     """
-    def __init__(self, config: Dict):
-        self.rules = config  # Recibe la sección 'quality_assessment_rules'
+    def __init__(self, config: Dict, enabled_engines: Dict[str, bool] = None):
+        self.rules = config
+        self.enabled_engines = enabled_engines or {'tesseract': True, 'paddleocr': True}
+        logger.info(f"ImageQualityEvaluator configurado para motores: {[k for k, v in self.enabled_engines.items() if v]}")
 
     def _detect_skew_angle(self, gray_image: np.ndarray) -> float:
         """Detecta el ángulo de inclinación de la imagen."""
@@ -114,37 +116,41 @@ class ImageQualityEvaluator:
         sharpness = self._estimate_noise_level(gray_image)
         contrast_std_dev, _ = self._estimate_contrast(gray_image)
         
-        # --- Generar Plan Específico para cada Motor Y ANÁLISIS ---
-        for component in ['tesseract', 'paddleocr', 'spatial_analysis']:
+        # OPTIMIZACIÓN: Solo procesar motores habilitados
+        enabled_components = [engine for engine, enabled in self.enabled_engines.items() if enabled]
+        logger.debug(f"Procesando planes para motores habilitados: {enabled_components}")
+        
+        # --- Generar Plan Específico solo para Motores Habilitados ---
+        for component in enabled_components:
             engine_rules = self.rules.get(component, {})
             plan = {}
             engine_obs = []
 
-            # 1. Plan de inclinación (Deskew)
+            # 1. Plan de inclinación (Deskew) - SOLO SI ES NECESARIO
             min_angle_thresh = self.rules.get('deskew', {}).get('min_angle_for_correction', 0.1)
             if abs(skew_angle) > min_angle_thresh:
                 plan['deskew'] = {'angle': skew_angle}
-                engine_obs.append(f"Inclinación de {skew_angle:.2f}° detectada (se corregirá).")
+                engine_obs.append(f"Inclinación {skew_angle:.2f}°")
 
-            # 2. Plan de ruido/nitidez (Denoise)
-            if 'denoise' in engine_rules:
+            # 2. Plan de ruido/nitidez (Denoise) - SOLO SI REALMENTE ES NECESARIO
+            if 'denoise' in engine_rules and sharpness < 80.0:  # Solo si imagen está borrosa
                 strength = self._get_adaptive_denoise_strength(sharpness, engine_rules['denoise'])
                 plan['denoise'] = {'strength': strength}
-                engine_obs.append(f"Nitidez: {sharpness:.1f}. Fuerza de denoise calculada: {strength}.")
+                engine_obs.append(f"Denoise fuerza {strength}")
 
-            # 3. Plan de contraste (Contrast)
-            if 'contrast_enhancement' in engine_rules:
+            # 3. Plan de contraste (Contrast) - SOLO SI ES NECESARIO
+            if 'contrast_enhancement' in engine_rules and contrast_std_dev < 40.0:  # Solo si bajo contraste
                 clahe_params = self._get_adaptive_contrast_params((img_h, img_w), engine_rules['contrast_enhancement'])
                 plan['contrast'] = {'clahe_params': clahe_params}
-                engine_obs.append(f"Contraste STD: {contrast_std_dev:.1f}. Grid CLAHE: {clahe_params['grid_size']}.")
+                engine_obs.append(f"CLAHE {clahe_params['grid_size']}")
 
             # 4. Plan de binarización (solo para Tesseract)
             if component == 'tesseract' and 'binarization' in engine_rules:
                 plan['binarization'] = self._get_adaptive_binarization_params(img_h, engine_rules['binarization'])
-                engine_obs.append(f"Params de binarización: Bloque={plan['binarization']['block_size']}, C={plan['binarization']['c_value']}.")
+                engine_obs.append(f"Bin bloque={plan['binarization']['block_size']}")
 
             correction_plans[component] = plan
             if engine_obs:
-                observations.extend([f"[{component.upper()}] {msg}" for msg in engine_obs])
+                observations.extend([f"[{component.upper()}] {', '.join(engine_obs)}" for _ in [1]])  # Una línea por motor
 
         return observations, correction_plans
