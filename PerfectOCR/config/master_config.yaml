@@ -1,0 +1,297 @@
+# PerfectOCR/config/master_config.yaml
+workflow:
+  input_folder: "C:/PerfectOCR/input"
+  output_folder: "C:/PerfectOCR/output"
+  temp_folder: "C:/PerfectOCR/data/temp"
+  log_level: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  project_root: ".." 
+  # NUEVA CONFIGURACIÓN PARA MI i5-8400H 4 núcleos, 8 hilos
+  max_workers: 6  # 8 hilos - 2 reservados = 6 óptimo
+  batch_mode: true  # true = procesa todos los archivos, false = solo el primero
+
+image_preparation:
+  quality_assessment_rules:
+    deskew:
+      enabled: true
+      min_angle_for_correction: 0.1
+      canny_thresholds: [50, 150]
+      hough_threshold: 150
+      hough_min_line_length_cap_px: 300
+      hough_max_line_gap_px: 20
+      hough_angle_filter_range_degrees: [-20.0, 20.0]
+    
+    moire_removal:
+      enabled: true
+      fft_params:
+        cutoff_freq: 0.15
+        filter_strength: 0.6
+      hybrid_params:
+        sigma: 1.0
+        alpha: 0.6 # Peso de la imagen original en la mezcla
+
+    denoise:
+      enabled: true
+      median_filter:
+        kernel_size: 3
+        salt_pepper_threshold: 0.001
+      bilateral_params:
+        laplacian_variance_threshold: 80.0
+        d: 9
+        sigma_color: 75
+        sigma_space: 75
+
+    contrast_enhancement:
+      enabled: true
+      clahe_clip_limit: 2.0
+      local_contrast_detection:
+        enabled: true
+        window_size: 100
+        std_dev_threshold: 15.0
+      dimension_thresholds_px: [1000, 2500]
+      grid_sizes_map: [[6, 6], [8, 8], [10, 10]]
+
+    binarization:
+      adaptive_c_value: 7
+      height_thresholds_px: [800, 1500, 2500]
+      block_sizes_map: [21, 25, 35, 41]
+        
+ocr:
+  paddleocr:
+    use_angle_cls: false
+    lang: "es"
+    show_log: false
+    use_gpu: false
+    enable_mkldnn: true 
+    det_model_dir: "C:/PerfectOCR/models/paddle/det/es"
+    rec_model_dir: "C:/PerfectOCR/models/paddle/rec/es"
+    cls_model_dir: "C:/PerfectOCR/models/paddle/cls"
+
+table_extractor:
+  line_reconstructor_params:
+    vertical_overlap_threshold: 0.4
+    centroid_y_gap_ratio: 0.25
+  
+  header_detector_config:
+    use_ml_detector: false
+    ml_model_path: "models/ml/header_classifier.pkl"
+    table_header_keywords_list:
+      semantic_keywords_path: "config/semantic_keywords.yaml"
+
+    table_end_keywords:
+      - "TOTAL"
+      - "SUBTOTAL"
+      - "SUMA TOTAL"
+      - "OBSERVACIONES"
+      - "VALOR TOTAL"
+      - "GRACIAS POR SU COMPRA"
+      - "PAGO CON"
+      - "EFECTIVO"
+      - "CAMBIO"
+      - "NO, DE ARTICULOS"
+      - "NO. DE ARTICULOS"
+      - "TOTAL DE ARTICULOS"
+      - "FIRMA"
+      - "AUTORIZADO POR"
+      - "NO. DE ARTICULOS:"
+      - "TOTAL A PAGAR"
+      - "TOTAL PAGADO"
+      - "TOTAL DE LA COMPRA"
+      - "TOTAL DE VENTA"
+      - "TOTAL DE ARTÍCULOS"
+      - "TOTAL DE ITEMS"
+      - "TOTAL DE PRODUCTOS"
+      - "TOTAL DE MERCANCÍA"
+      - "TOTAL DE LA TRANSACCIÓN"
+      - "TOTAL DE LA OPERACIÓN"
+      - "GRACIAS POR SU PREFERENCIA"
+      - "VUELVA PRONTO"
+      - "ATENDIDO POR"
+      - "CAJERO"
+      - "FECHA DE EMISIÓN"
+      - "HORA DE EMISIÓN"
+      - "FOLIO"
+      - "TICKET"
+      - "RECIBO"
+      - "PAGO EN EFECTIVO"
+      - "PAGO CON TARJETA"
+      - "PAGO CON TRANSFERENCIA"
+      - "MONTO RECIBIDO"
+      - "DEVOLUCIÓN"
+
+    total_words:
+      - "TOTAL A PAGAR"
+      - "TOTAL PAGADO"
+      - "TOTAL DE LA COMPRA"
+      - "TOTAL DE VENTA"
+      - "TOTAL DE LA TRANSACCIÓN"
+      - "TOTAL DE LA OPERACIÓN"
+      - "SUBTOTAL"
+      - "SUMA TOTAL"
+      - "VALOR TOTAL"
+      - "SUB-TOTAL"
+      - "IMPUESTO"
+      - "TOTAL"
+
+    items_qty:
+      - "NO, DE ARTICULOS"
+      - "NO. DE ARTICULOS"
+      - "ARTICULOS"
+      - "ARTÍCULOS"
+      - "NO. DE ARTICULOS:"
+      - "CANTIDAD DE ARTICULOS"
+      - "CANTIDAD DE ARTÍCULOS"
+      - "UNIDADES"
+      - "UNIDAD"
+      - "UNIDADES ADQUIRIDAS"
+      - "UNIDADES VENDIDAS"
+      - "UNIDADES COMPRADAS"
+      - "UNIDADES ENTREGADAS"
+      - "UNIDADES SOLICITADAS"
+      - "ITEMS"
+      - "ITEM"
+      - "NÚMERO DE ITEMS"
+      - "NÚMERO DE ARTÍCULOS"
+      - "NÚMERO DE PRODUCTOS"
+      - "NÚMERO DE PIEZAS"
+      - "NÚMERO DE UNIDADES"
+      - "PRODUCTOS"
+      - "PRODUCTO"
+      - "PIEZAS"
+      - "PIEZA"
+      - "CANTIDAD"
+      - "CANT."
+      - "CANT"
+      - "CANTIDAD ADQUIRIDA"
+      - "CANTIDAD VENDIDA"
+      - "CANTIDAD COMPRADA"
+      - "MERCANCÍA"
+      - "MERCANCIA"
+      - "MERCANCIAS"
+      - "CANTIDAD DE PRODUCTOS"
+      - "CANTIDAD DE PIEZAS"
+      - "CANTIDAD DE UNIDADES"
+      - "CANTIDAD ENTREGADA"
+      - "CANTIDAD DE PRODUCTOS ENTREGADOS"
+      - "CANTIDAD DE MERCANCÍA ENTREGADA"
+      - "CANTIDAD DE ITEMS ENTREGADOS"
+      - "CANTIDAD DE ARTÍCULOS ENTREGADOS"
+      - "CANTIDAD DE PIEZAS ENTREGADAS"
+      - "CANTIDAD DE PZ ENTREGADAS"
+      - "CANTIDAD SOLICITADA"
+      - "CANTIDAD DE PRODUCTOS SOLICITADOS"
+      - "CANTIDAD DE MERCANCÍA SOLICITADA"
+      - "CANTIDAD DE ITEMS SOLICITADOS"
+      - "CANTIDAD DE ARTÍCULOS SOLICITADOS"
+      - "CANTIDAD DE PIEZAS SOLICITADAS"
+      - "CANTIDAD DE PZ SOLICITADAS"
+      - "CANTIDAD PEDIDA"
+      - "CANTIDAD DE PRODUCTOS PEDIDOS"
+      - "CANTIDAD DE MERCANCÍA PEDIDA"
+      - "CANTIDAD DE ITEMS PEDIDOS"
+      - "CANTIDAD DE ARTÍCULOS PEDIDOS"
+      - "CANTIDAD DE PIEZAS PEDIDAS"
+      - "CANTIDAD DE PZ PEDIDAS"
+      - "CANTIDAD RECIBIDA"
+      - "CANTIDAD DE PRODUCTOS RECIBIDOS"
+      - "CANTIDAD DE MERCANCÍA RECIBIDA"
+      - "CANTIDAD DE ITEMS RECIBIDOS"
+      - "CANTIDAD DE ARTÍCULOS RECIBIDOS"
+      - "CANTIDAD DE PIEZAS RECIBIDAS"
+      - "CANTIDAD DE PZ RECIBIDAS"
+      - "CANTIDAD DESPACHADA"
+      - "CANTIDAD DE PRODUCTOS DESPACHADOS"
+      - "CANTIDAD DE MERCANCÍA DESPACHADA"
+      - "CANTIDAD DE ITEMS DESPACHADOS"
+      - "CANTIDAD DE ARTÍCULOS DESPACHADOS"
+      - "CANTIDAD DE PIEZAS DESPACHADAS"
+      - "CANTIDAD DE PZ DESPACHADAS"
+      - "CANTIDAD ENVIADA"
+      - "CANTIDAD DE PRODUCTOS ENVIADOS"
+      - "CANTIDAD DE MERCANCÍA ENVIADA"
+      - "CANTIDAD DE ITEMS ENVIADOS"
+      - "CANTIDAD DE ARTÍCULOS ENVIADOS"
+      - "CANTIDAD DE PIEZAS ENVIADAS"
+      - "CANTIDAD DE PZ ENVIADAS"
+
+    header_detection_fuzzy_min_ratio: 85.0
+    header_min_y_ratio: 0.05 # Min Y position of header relative to page height (0.0-1.0)
+    header_max_y_ratio: 0.75 # Max Y position of header relative to page height (0.0-1.0)
+    min_header_keywords_in_line: 2
+    max_header_keywords_in_line: 5
+    max_header_line_gap_factor: 2.5 # Multiplier of avg line height for max gap between header lines
+    min_line_confidence_for_header: 70.0 # Min avg confidence of a line to be considered header
+    default_line_height_for_gap: 20.00 # Fallback if dynamic line height can't be computed
+    
+postprocessing:
+  text_correction:
+    enabled: false
+    vocab_path: "data/dictionary/diconon.txt"
+    min_confidence_spell: 85.0
+    # For common_errors and contextual_correction, lambdas are hard to define in YAML.
+    # Python code will implement the lambda logic, YAML can enable/disable them or provide simple string patterns.
+    apply_common_error_correction_rules_defined_in_code: true # Enable/disable hardcoded common error rules
+    apply_contextual_correction_rules_defined_in_code: false # Enable/disable hardcoded contextual rules
+    # Example of how simple rules could be defined if needed, but complex ones stay in code:
+    # simple_common_errors:
+    #   - pattern: "erron"
+    #     replacement: "error"
+    # contextual_rules_enabled: true # To enable/disable this step
+    # contextual_correction_rules:
+    #    - pattern: '\b(cliente|proveedor)\b'
+    #      expected_context_keywords: ['nombre', 'dirección', 'teléfono']
+    #      flags: "IGNORECASE"
+
+  text_formatting:
+    format_dates: false
+    normalize_numbers: false
+    max_line_length_for_preserve_breaks: 80
+    # Date patterns are complex for pure YAML; Python can store them and YAML can enable/disable categories
+    apply_date_normalization_rules_defined_in_code: true
+    # month_names_map: # For date normalization if lambda_month_name_to_num_date is used
+    #   enero: '01'
+    #   # ...
+    #   diciembre: '12'
+    #   default_month_num: '00'
+
+output_config:
+  enabled_outputs:
+    preprocessed_image: true
+    ocr_raw: false                      # Resultados directos del OCR
+    line_grouping_results: false               # RESULTADO de este módulo
+    debug_grouped_lines_text: false            # Vista de texto simple de las líneas agrupadas
+    reconstructed_lines: false               # Líneas reconstruidas
+    debug_reconstructed_lines_text: false      # Líneas reconstruidas para debug
+    vectorization_results: false
+    tabular_lines: false
+    non_tabular_lines: false
+    tabular_atomic_vectors: false
+    non_tabular_atomic_vectors: false
+
+    cleaned_lines: false
+    debug_cleaned_lines_text: false            # Líneas limpias
+    debug_corrected_lines_text: false         # Líneas corregi
+    table_body_lines: false               # Líneas de texto de tabla 
+    geo_matrix_consolidated: false
+    debug_structured_table: false           # Output consolidado de geo_matrix
+    structured_table: false               # Output de geo_matrix
+    semantically_corrected_matrix: false   # Matriz del semantic corrector
+    semantic_consistency_matrix: false     # Matriz después de la corrección de consistencia semántica
+    math_max_matrix: false                  # Matriz final después de math_max
+    ml_training_data: false                # Datos para ML
+    debug_semantic_matrix: false           # Para depuración
+    ground_truth_excel: false               # Excel consolidado
+    
+batch_processing:
+  small_batch_limit: 5
+  max_physical_cores: 4
+  add_extra_worker: true
+  batch_size_factor: 2
+  auto_mode: true
+
+geovectorization_process: 
+  table_detection_params:
+    min_cluster_size: 3
+    
+  density_map:
+    densitý_map_path: ".density_map.json"
+
