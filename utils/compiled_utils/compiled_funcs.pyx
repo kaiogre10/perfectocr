@@ -1,255 +1,152 @@
 # cython: language_level=3, boundscheck=False, wraparound=False, cdivision=True
-from cpython.version cimport PY_MAJOR_VERSION
-from libc.stdlib cimport malloc, free
-from cpython.unicode cimport PyUnicode_AsUTF8, PyUnicode_FromStringAndSize
+from libc.stdint cimport uint8_t
+from cpython.unicode cimport PyUnicode_GET_LENGTH, PyUnicode_1BYTE_DATA, PyUnicode_FromStringAndSize
+from cpython.bytes cimport PyBytes_GET_SIZE, PyBytes_AS_STRING
 
-# Acceso directo a la estructura interna de CPython para strings ASCII/CompactBytes
-cdef extern from "Python.h":
-    char* PyUnicode_AsUTF8(object o) except NULL
-    object PyUnicode_FromStringAndSize(const char *v, Py_ssize_t len)
-    bytes PyBytes_FromString(char *v) except NULL
-
-cdef inline bint _is_alpha_char(char char_code) nogil:
+cdef inline bint _is_alpha_char(uint8_t char_code) noexcept nogil:
     """Check if char is alpha (65-90: A-Z, 97-122: a-z)"""
     return (65 <= char_code <= 90) or (97 <= char_code <= 122)
 
-cdef inline bint _is_decimal_char(char char_code) nogil:
+cdef inline bint _is_decimal_char(uint8_t char_code) noexcept nogil:
     """Check if char is numeric (48-57: 0-9)"""
     return (48 <= char_code <= 57)
 
-cdef inline bint _is_alnum_char(char char_code) nogil:
-    """Check if char is alphanumeric (48-57: 0-9, 65-90: A-Z, 97-122: a-z)"""
-    return (_is_alpha_char(char_code)) or (_is_decimal_char(char_code))
+cdef inline bint _is_alnum_char(uint8_t char_code) noexcept nogil:
+    """Check if char is alphanumeric"""
+    return _is_alpha_char(char_code) or _is_decimal_char(char_code)
 
-cdef inline bint _is_cuant_char(char char_code) nogil:
+cdef inline bint _is_cuant_char(uint8_t char_code) noexcept nogil:
     """Check if char is cuantitative (44: ,, 46: ., 36: $)"""
-    return (_is_decimal_char(char_code)) or ((char_code == 44) or (char_code == 36) or (char_code == 46))
+    return _is_decimal_char(char_code) or (char_code == 44) or (char_code == 46) or (char_code == 36)
 
-cpdef bint validate_quant_chars(str text):
+def validate_quant_chars(str text) -> bool:
     """Valida todos si todos los caracteres de un string son cuantitativos y hay por lo menos un decimal"""
-    cdef Py_ssize_t text_len = len(text)
-    cdef Py_ssize_t i
-    cdef char* s
-    cdef char char_code
-    cdef bint valid = False
-
     if not text:
         return False
 
-    s = PyUnicode_AsUTF8(text)
+    cdef Py_ssize_t text_len = PyUnicode_GET_LENGTH(text)
+    cdef const uint8_t* s = <const uint8_t*>PyUnicode_1BYTE_DATA(text)
+    cdef Py_ssize_t i
+    cdef uint8_t char_code
+    cdef bint valid = 0
+
     for i in range(text_len):
         char_code = s[i]
         if not _is_cuant_char(char_code):
-            return False
+            valid = 0
+            break
         if _is_decimal_char(char_code):
-            valid = True
+            valid = 1
 
     return valid
 
-cpdef int count_cuants(str text):
+def count_cuants(str text) -> int:
     """Cuenta caracteres cuantitativos (0-9, ',', '.', '$') y devuelve 0 si no existe ningún dígito."""
-    cdef Py_ssize_t text_len
-    cdef Py_ssize_t i
-    cdef char* s
-    cdef char char_code
-    cdef int total_cuants = 0
-    cdef bint has_decimal = False
-
     if not text:
         return 0
 
-    text_len = len(text)
-    s = PyUnicode_AsUTF8(text)
+    cdef Py_ssize_t text_len = PyUnicode_GET_LENGTH(text)
+    cdef const uint8_t* s = <const uint8_t*>PyUnicode_1BYTE_DATA(text)
+    cdef Py_ssize_t i
+    cdef uint8_t char_code
+    cdef int total_cuants = 0
+    cdef bint has_decimal = 0
 
     for i in range(text_len):
         char_code = s[i]
-
         if 48 <= char_code <= 57:
-            has_decimal = True
+            has_decimal = 1
             total_cuants += 1
-
         elif char_code == 44 or char_code == 46 or char_code == 36:
             total_cuants += 1
 
     return total_cuants if has_decimal else 0
 
-cdef inline float _ngram_similarity(const unsigned char* a, const unsigned char* b, int text_len) noexcept nogil:
+cdef inline float _ngram_similarity(const unsigned char* a, const unsigned char* b, Py_ssize_t length) noexcept nogil:
     cdef Py_ssize_t i
-    cdef int matches = 0
+    cdef Py_ssize_t matches = 0
 
-    for i in range(text_len):
+    for i in range(length):
         if a[i] == b[i]:
             matches += 1
 
-    # Forzar división flotante para evitar truncamiento a 0
-    return <float>matches / <float>text_len
+    return <float>matches / <float>length
 
-def ngram_similarity(bytes texta, bytes textb):
-    cdef int text_len = len(texta)
-    if text_len == 0 or text_len != len(textb):
-        raise ValueError("Los textos deben tener longitudes iguales y mayores a cero.")
+def ngram_similarity(bytes a, bytes b) -> float:
+    """Calcula la similitud suave entre dos n-gramas."""
+    cdef Py_ssize_t length = PyBytes_GET_SIZE(a)
+    cdef const unsigned char* ptr_a = <const unsigned char*>PyBytes_AS_STRING(a)
+    cdef const unsigned char* ptr_b = <const unsigned char*>PyBytes_AS_STRING(b)
 
-    # Pasamos los punteros directos a la función inline
-    return _ngram_similarity(texta, textb, text_len)
+    return _ngram_similarity(ptr_a, ptr_b, length)
 
-cdef inline float _length_penalty_c(int a, int b) nogil:
-    return min(a, b) / max(a, b)
+cdef inline float _length_penalty_c(int a, int b) noexcept nogil:
+    cdef int num_min = a if a < b else b
+    cdef int num_max = b if a < b else a
+    
+    return <float>num_min / <float>num_max
 
-def length_penalty(a: int, b: int) -> float:
+def length_penalty(int a, int b) -> float:
+    """Penalización simétrica por diferencia de longitud."""
     return _length_penalty_c(a, b)
 
-cpdef bint validate_text(str text):
+def validate_text(str text) -> bool:
     """Valida que un string contenga caracteres válidos y que no esté vacío"""
-    cdef Py_ssize_t text_len = len(text)
-    cdef Py_ssize_t i
-    cdef char* s
-    cdef char char_code
-
     if not text:
         return False
 
-    s = PyUnicode_AsUTF8(text)
+    cdef Py_ssize_t text_len = PyUnicode_GET_LENGTH(text)
+    cdef const uint8_t* s = <const uint8_t*>PyUnicode_1BYTE_DATA(text)
+    cdef Py_ssize_t i
+    cdef bint is_valid = 0
+
     for i in range(text_len):
-        char_code = s[i]
-        if _is_alnum_char(char_code):
-            return True
+        if _is_alnum_char(s[i]):
+            is_valid = 1
+            break
 
-    return False
+    return is_valid
 
-cpdef str space_removal(str text):
-    """
-    Normaliza espacios asumiendo UTF-8/ASCII garantizado de 1 byte por carácter.
-    Cero objetos intermedios. Máxima velocidad de ejecución en C.
-    """
-    if text is None:
+def space_removal(str text) -> str:
+    """Normaliza espacios asumiendo UTF-8/ASCII garantizado de 1 byte por carácter"""
+    if not text:
         return ""
 
-    cdef Py_ssize_t n = len(text)
-    if n == 0:
+    cdef Py_ssize_t orig_len = PyUnicode_GET_LENGTH(text)
+    if orig_len == 0:
         return ""
 
-    # Obtener el puntero nativo de C directo del objeto Python (Sin copiar)
-    cdef char* s = PyUnicode_AsUTF8(text)
-    
+    cdef const uint8_t* s = <const uint8_t*>PyUnicode_1BYTE_DATA(text)
+    cdef Py_ssize_t n = orig_len
+
     if n == 1:
         return "" if s[0] == 32 else text
 
-    # --- Fast Path: Detección rápida ---
-    cdef Py_ssize_t i = 0
-    cdef bint has_changes = False
-    cdef bint in_space = False
+    while n > 0 and s[0] == 32:
+        s += 1
+        n -= 1
 
-    if s[0] == 32:  # Leading space
-        has_changes = True
-    else:
-        while i < n:
-            if s[i] == 32:
-                if in_space or (i == n - 1):  # Espacio duplicado o trailing space
-                    has_changes = True
-                    break
-                in_space = True
-            else:
-                in_space = False
-            i += 1
+    while n > 0 and s[n - 1] == 32:
+        n -= 1
 
-    # Si el string ya está limpio, retornamos la referencia original (0 alocaciones)
-    if not has_changes:
-        return text
-
-    # --- Allocating Buffer Temporal ---
-    cdef char* buffer = <char*>malloc(n * sizeof(char))
-    if buffer == NULL:
-        raise MemoryError()
-
-    cdef Py_ssize_t j = 0
-    in_space = False
-    i = 0
-
-    while i < n:
-        if s[i] == 32:
-            if j == 0 or in_space:
-                i += 1
-                continue
-            buffer[j] = 32
-            j += 1
-            in_space = True
-        else:
-            buffer[j] = s[i]
-            j += 1
-            in_space = False
-        i += 1
-
-    # Remover trailing space residual si existe
-    if j > 0 and buffer[j - 1] == 32:
-        j -= 1
-
-    if j == 0:
-        free(buffer)
+    if n == 0:
         return ""
 
-    # Construir el nuevo objeto Python str directamente desde el buffer de C
-    cdef str result = PyUnicode_FromStringAndSize(buffer, j)
-    
-    free(buffer)
-    return result
-
-cpdef bytes bspace_removal(bytes text):
-    if text is None:
-        return b""
-    cdef Py_ssize_t n = len(text)
-    if n == 0:
-        return b""
-    cdef char* s = text  # conversión directa e implícita, sin función extra
-    
-    if n == 1:
-        return b"" if s[0] == 32 else text
-    
+    cdef char buffer[512]
     cdef Py_ssize_t i = 0
-    cdef bint has_changes = False
-    cdef bint in_space = False
-    if s[0] == 32:
-        has_changes = True
-    else:
-        while i < n:
-            if s[i] == 32:
-                if in_space or (i == n - 1):
-                    has_changes = True
-                    break
-                in_space = True
-            else:
-                in_space = False
-            i += 1
-    
-    if not has_changes:
-        return text
-    
-    cdef char* buffer = <char*>malloc(n * sizeof(char))
-    if buffer == NULL:
-        raise MemoryError()
     cdef Py_ssize_t j = 0
-    in_space = False
-    i = 0
+    cdef uint8_t c
+
     while i < n:
-        if s[i] == 32:
-            if j == 0 or in_space:
+        c = s[i]
+        buffer[j] = <char>c
+        j += 1
+        if c == 32:
+            while i + 1 < n and s[i + 1] == 32:
                 i += 1
-                continue
-            buffer[j] = 32
-            j += 1
-            in_space = True
-        else:
-            buffer[j] = s[i]
-            j += 1
-            in_space = False
         i += 1
-    
-    if j > 0 and buffer[j - 1] == 32:
-        j -= 1
-    if j == 0:
-        free(buffer)
-        return b""
-    
-    cdef bytes result = buffer[:j]  # construcción directa desde char*
-    free(buffer)
-    return result
-    
+
+    if j == orig_len:
+        return text
+
+    return PyUnicode_FromStringAndSize(buffer, j)

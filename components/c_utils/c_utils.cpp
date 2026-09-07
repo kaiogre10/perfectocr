@@ -38,7 +38,7 @@ namespace image_utils {
             
         if (!validate_image(image)) {
             image.release();
-        };
+        }
     }
 
     void make_contiguous(cv::Mat& image) {
@@ -55,12 +55,10 @@ namespace image_utils {
 
         cv::Scalar mean_val = cv::mean(image);
         double avg_brightness = mean_val[0];
-
         return (avg_brightness > 7.0 && avg_brightness < 251.0);
     }
 
     void normalize_image(cv::Mat& image) {
-        // Verificar si la imagen es válida
         if (image.empty()) {
             return;
         }

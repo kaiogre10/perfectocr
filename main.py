@@ -17,7 +17,12 @@ if config_service.test_config:
     sys.exit()
 
 system_paths = config_service.system_paths
-system_service.set_system_config(PROJECT_ROOT, system_paths) # type: ignore
+if config_service.compile_cython:
+    from config import setup
+    setup.build_extensions(PROJECT_ROOT, system_paths)
+    sys.exit()
+    
+system_service.set_system_config(PROJECT_ROOT, system_paths)
 if config_service.clean_project:
     log_service.log_simple("CLEAN UP ACTIVADO, FINALIZANDO")
     system_service.cleanup_project()

@@ -59,17 +59,23 @@ _id_prov_pattern = id_prov_pattern
 _replacement_map = REPLACEMENT_MAP
 vowels = VOWELS
 
+category = unicodedata.category
+
 def normalice_text(s: str) -> str:
-    """"Normaliza texto eliminando apóstrofes, tildes, diéresis. NO ELIMINA CARACTERES DE NINGÚN TIPO, MISMO LEN() EN INPUT Y OUTPUT"""
+    """"Normaliza texto ascii eliminando apóstrofes, tildes, diéresis. NO ELIMINA LETRAS"""
     if not s:
         return ""
-
-    norm_text = "".join(ch for ch in unicodedata.normalize("NFD", s) if unicodedata.category(ch) != "Mn")
-    hard_text = unicodedata.normalize('NFKD', norm_text).encode('ascii', 'replace').decode('ascii')
-    if '?' in hard_text:
-        hard_text = hard_text.replace('?', ' ')
-        return norm_text if not hard_text else hard_text
-    return space_removal(norm_text) if norm_text else ""
+    
+    norm_text = "".join(ch for ch in unicodedata.normalize("NFD", s) if category(ch) != "Mn")
+        
+    if not norm_text:
+        return ""
+    
+    hard_bytes = unicodedata.normalize('NFKD', norm_text).encode('ascii', 'replace')
+    if b"?" in hard_bytes:
+        hard_bytes.replace(b"?", b" ")
+        
+    return space_removal(hard_bytes.decode('ascii'))
     
 def get_rfc(s: str) -> str:
     if not s:
@@ -170,11 +176,11 @@ def find_umd(text: str) -> str:
                 tok = _correct_numbers(tok)
                 dash_ind = tok.find("7")
                 tok = tok[(dash_ind + 1):] if dash_ind >= 0 else tok
-                tok = ("C/" + tok).strip()
+                tok = space_removal("C/" + tok)
 
             elif _numeric_fractions.fullmatch(tok):
                 tok = _correct_numbers(tok)
-                tok = tok.replace(NumberStr.SEVEN, "/", 1).strip()
+                tok = space_removal(tok.replace(NumberStr.SEVEN, "/", 1))
 
             elif bool(_umd_patterns.fullmatch(tok)):
                 tok = tok.strip()
@@ -191,9 +197,9 @@ def find_umd(text: str) -> str:
 
             result = left_part + mid + right_part
 
-        result_parts.append(result.strip())
+        result_parts.append(result)
 
-    return space_removal(" ".join(result_parts).strip())
+    return space_removal(" ".join(result_parts))
 
 def find_key_data(s: str, activate_func: List[bool]) -> Optional[int]:
     if not any(c.isalnum() for c in s):
@@ -226,6 +232,7 @@ def find_key_data(s: str, activate_func: List[bool]) -> Optional[int]:
     if not activate_func[6] and bool(_cp_pattern.search(s)):
         activate_func[6] = True
         return KeyField.direccionp.value
+    
     return None
 
 def validate_quant_pattern(text: str) -> bool:
@@ -243,10 +250,11 @@ def contains_quantitative(text: str) -> bool:
 
 def get_cuants(text: str) -> str:
     """Aísla cuantitativos SÓLO si están pegados a otros caracteres (ruido o texto). Si ya están separados por espacios, no modifica el texto."""
+    text = text.strip()
     if len(text) < 3 or text.isdecimal() or text.isalpha():
         return text
-
-    words = text.strip().split(" ")
+    
+    words = text.split(" ")
     result_parts: List[str] = []
     for _, word in enumerate(words):
 
@@ -300,17 +308,21 @@ def get_cuants(text: str) -> str:
         result_parts.append(result)
         continue
 
-    clean_quants =  " ".join(result_parts).strip()
+    clean_quants =  space_removal(" ".join(result_parts))
     cuant_cheks = clean_quants.split(" ")
     cheks = len(cuant_cheks)
+    
     if cheks == 1:
         return clean_quants
+    
     elif cheks > 1:
         potencial_noise = cuant_cheks[-1]
+        
         if len(potencial_noise) < 3 and not is_quantitative(potencial_noise):
             cuant_cheks.pop(-1)
-            clean_quants =  " ".join(cuant_cheks).strip()
-        return clean_quants.strip()
+            clean_quants =  " ".join(cuant_cheks)
+        return space_removal(clean_quants)
+    
     else:
         return ""
 
@@ -338,7 +350,7 @@ def punct_strip(text: str) -> str:
     if validate_quant_chars(text) or is_acronym(text):
         return text.strip()
     
-    return _edge_punt_pattern.sub("", text).strip()
+    return space_removal(_edge_punt_pattern.sub("", text))
 
 def separate_punt(text: str) -> str:
     text = text.strip()
@@ -557,6 +569,7 @@ def fast_classfier(text: str) -> Tuple[List[int], int]:
     """Clasifica un string rapidamente, no seleccionar los strings antes de llamar a la función impactará de manera negativa el output del pipeline"""
     if not text:
         return ([SemantiClass.NOISE], 0)
+    
     total_cuants = 0
     semantic_classes: List[int] = []
     tokens = text.split(" ")
@@ -564,6 +577,7 @@ def fast_classfier(text: str) -> Tuple[List[int], int]:
         t_class, t_cuant = classify_token_cuant(t)
         semantic_classes.append(t_class)
         total_cuants += t_cuant
+    
     return (semantic_classes, total_cuants)
 
 def _correct_numbers(text: str) -> str:

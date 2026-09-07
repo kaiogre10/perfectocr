@@ -1,5 +1,5 @@
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input/AAAA0006.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.012701's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.012463's:
 cantidad_art           producto_norm precio_unitario costo_tran col_4
            3 VINCI 25 AM LIM 50 C/10           85.50     256.50    12
            5        PUNTILLAS PM 0.5            9.49      47.45    15
@@ -16,7 +16,7 @@ cantidad_art           producto_norm precio_unitario costo_tran col_4
            2   CART FLUORESC AM C/10           49.10      98.20     8
 process_builder.py:85 - Procesadas: 1 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input/AAAA0053.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.011443's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.011888's:
 cantidad_art                      producto_norm precio_unitario costo_tran
            1         PP FINO CUER AMA NGO C/ 12           44.40      44.40
            1                     PP MED RJ C/12           41.40      41.40
@@ -28,7 +28,7 @@ cantidad_art                      producto_norm precio_unitario costo_tran
            1        LAPIZ MAPED TRIANG CJA C/12           47.40      47.40
 process_builder.py:85 - Procesadas: 2 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAA0040.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.002777's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.002833's:
  col_0 cantidad_art                         producto_norm precio_unitario costo_tran
   CR17            2                   CREPE ROJO PAQ C/10           49.80      99.60
    CRQ            1     CART OPALINA BCA CTA 225grs C/100          159.90     159.90
@@ -40,14 +40,14 @@ PC2005            1 BLOCK SOLICITUD DE EMPLEO CTA 25H C/3           42.60      4
   XC10            1           COMPAS ESCOLAR TUBULAR C/10           84.98      84.98
 process_builder.py:85 - Procesadas: 3 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAA0058.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.006211's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.006895's:
 cantidad_art             producto_norm precio_unitario costo_tran
            7           LLUVIA MOR C/10           17.70     123.90
            1 FOLDER OFICIO CREMA C/1 0           24.90      24.90
            1             DIXON 21G C/4           69.93      69.93
 process_builder.py:85 - Procesadas: 4 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAA0038.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.014312's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.015033's:
   col_0 cantidad_art                       producto_norm precio_unitario costo_tran
    PVD6            1 PELQTA DE VINIL 8 1/2 DECOR RED C/6           57.00      57.00
     CRE            2               CREPE AZ REY PAQ C/10           49.80      99.60
@@ -67,12 +67,12 @@ math_max.py:51 - DataFrame RECONSTRUIDO en 0.014312's:
   50.10            1          SILICON BARRA DELGADO C/10           21.93      21.93
 process_builder.py:85 - Procesadas: 5 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAC0030.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.004630's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.004881's:
 cantidad_art        producto_norm precio_unitario costo_tran
            3 GRAPA MARVEL C/500 0           26.50      79.50
 process_builder.py:85 - Procesadas: 6 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAA0079.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.007787's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.008663's:
 col_0 cantidad_art                      producto_norm precio_unitario costo_tran
  FT34            2             FOMY CTA DIAM NGO C/10           34.50      69.00
 HA500            2 HOJA BLANCA CTA SCOOL AZ PAQ C/500           94.50     189.00
@@ -82,7 +82,7 @@ HA500            2 HOJA BLANCA CTA SCOOL AZ PAQ C/500           94.50     189.00
  PV23            1       PINT VINCI 25ml SURTIDA C/16           90.50      90.50
 process_builder.py:85 - Procesadas: 7 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAA0059.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.011928's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.010758's:
 cantidad_art                      producto_norm precio_unitario costo_tran
            1       PINT VINCI 25ML SURTIDA C/10           90.50      90.50
            1 BLOCK MILIMETRICO BOND CTA 5OH C/3           95.85      95.85
@@ -92,7 +92,7 @@ cantidad_art                      producto_norm precio_unitario costo_tran
            2                 HOJA CTA MOR C/100           69.30     138.60
 process_builder.py:85 - Procesadas: 8 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAC0037.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.028482's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.028151's:
 cantidad_art                                                   producto_norm precio_unitario costo_tran
            1                                    SILICON BARRA DEL GADO JUMBO          150.00     150.00
            1                                            PINCEL COLOR GRUE SO           70.00      70.00
@@ -119,7 +119,7 @@ cantidad_art                                                   producto_norm pre
            1                                    I PLUMA AZOR MED C/ 12 NEGRO           32.00      32.00
 process_builder.py:85 - Procesadas: 9 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input2/AAAA0015.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.019452's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.019258's:
 cantidad_art                      producto_norm precio_unitario costo_tran
            1                PEGAM BCO 30G C/104           39.90      39.90
            1                 PEGAM BCO 60G C/10           45.90      45.90
@@ -145,7 +145,7 @@ cantidad_art                      producto_norm precio_unitario costo_tran
            1                 PEGAM BCO 250G C/5           51.60      51.60
 process_builder.py:85 - Procesadas: 10 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input3/AAAC0043.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.036738's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.018038's:
 cantidad_art                   producto_norm precio_unitario costo_tran
            6           GIS BLANCO C/12 B ACO           10.00      60.00
            6            GIS COLOR C/12 BA CO           11.00      66.00
@@ -162,42 +162,23 @@ cantidad_art                   producto_norm precio_unitario costo_tran
           10                CARTONCILLO NEGR            3.50      35.00
 process_builder.py:85 - Procesadas: 11 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input3/AAAC0010.png'
-math_max.py:235 - NO SE ENCONTRARON TODAS LAS COLUMNAS DECIMALES: [0, 1, 2]
-math_max.py:58 - Error en MatrixSolver.vectorize: ''arith_cols_ids''
-Traceback (most recent call last):
-  File "/home/kaiogre05/PerfectOCR/core/workers/vectorial_transformation/math_max.py", line 44, in vectorize
-    corrected_df = self.solve(df, context)
-                   ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/kaiogre05/PerfectOCR/core/workers/vectorial_transformation/math_max.py", line 104, in solve
-    del context[DataMathDict.ARITH_COLS_IDS.value]
-        ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-KeyError: 'arith_cols_ids'
-vectorization_stager.py:25 - 'MatrixSolver' falló, tiempo: 0.005115's
-process_builder.py:62 - Falla en 'VectorizationStager', tiempo: 0.010572's
+math_max.py:47 - SE DEVOLVIÓ DATA FRAME VACÍO
+vectorization_stager.py:25 - 'MatrixSolver' falló, tiempo: 0.012107's
+process_builder.py:62 - Falla en 'VectorizationStager', tiempo: 0.015499's
 NoneType: None
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input3/AAAB0002.png'
-math_max.py:58 - Error en MatrixSolver.vectorize: 'index 0 is out of bounds for axis 0 with size 0'
-Traceback (most recent call last):
-  File "/home/kaiogre05/PerfectOCR/core/workers/vectorial_transformation/math_max.py", line 44, in vectorize
-    corrected_df = self.solve(df, context)
-                   ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/kaiogre05/PerfectOCR/core/workers/vectorial_transformation/math_max.py", line 93, in solve
-    df_art, context_art = self.solve_incomplete(df, context)
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/kaiogre05/PerfectOCR/core/workers/vectorial_transformation/math_max.py", line 873, in solve_incomplete
-    val_a = decimalice(df.iat[r, dec_cells[0]])
-                                 ~~~~~~~~~^^^
-IndexError: index 0 is out of bounds for axis 0 with size 0
-vectorization_stager.py:25 - 'MatrixSolver' falló, tiempo: 0.000950's
-process_builder.py:62 - Falla en 'VectorizationStager', tiempo: 0.003721's
-NoneType: None
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.002591's:
+cantidad_art              producto_norm precio_unitario costo_tran
+          46      CUADFR P SCRIBE C/100           21.00     966.18
+           1 HOJA l OTOBO TIC C/500 C10          684.40     684.40
+process_builder.py:85 - Procesadas: 13 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input3/AAAC0025.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.006480's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.005481's:
 cantidad_art      producto_norm precio_unitario costo_tran
            1 PAPEL PICADO C/10T           78.00      78.00
 process_builder.py:85 - Procesadas: 14 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input3/AAAA0061.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.011789's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.013256's:
 cantidad_art                    producto_norm precio_unitario costo_tran
            1 HOJA CTA CA NARIO 09 DI EM C/100           69.30      69.30
            1          CINTA TRANS P 44X40 C/6           75.50      75.50
@@ -207,7 +188,7 @@ cantidad_art                    producto_norm precio_unitario costo_tran
           30           PAPEL FANTA SIA COUCHE            5.22     156.60
 process_builder.py:85 - Procesadas: 15 de '16' imagenes
 image_loader.py:21 - IMAGEN: '/home/kaiogre05/PerfectOCR/input3/AAAC0034.png'
-math_max.py:51 - DataFrame RECONSTRUIDO en 0.009417's:
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.009646's:
 cantidad_art                      producto_norm precio_unitario costo_tran
            1     BOLSA PAPEL MEDIAN A LISA C/10           89.00      89.00
            1 BOLSA PAPEL MEDIAN A PATRONES C/10           89.00      89.00
@@ -216,8 +197,7 @@ cantidad_art                      producto_norm precio_unitario costo_tran
            1                      BOLSA MEDIANA           15.00      15.00
            7                       BOLSA GRANDE           20.00     140.00
 process_builder.py:85 - Procesadas: 16 de '16' imagenes
-process_builder.py:92 - '14 de 16' Archivos Digitalizados CORRECTAMENTE en: 49.17062105700097, promedio: 3.0731638160625607's / documento
-process_builder.py:32 - PAYLOAD GUARDADO EN MEMORIA: '9756B', Y EN ARCHIVO DE SEGURIDAD
-main_builder.py:91 - TODAS LAS IMÁGENES FUERON PROCESADAS CORRECTAMENTE EN Tiempo: 49.17144781600291, promedio: 3.073215's
-main_builder.py:100 - SIZE/SENDED: 9756.0 B / 14
-main_builder.py:48 - Tiempo: 49.66369112599932 total en completar el proceso de tranformación de imagenes
+process_builder.py:92 - '15 de 16' Archivos Digitalizados CORRECTAMENTE en: 32.992640925996966, promedio: 2.0620400578748104's / documento
+main_builder.py:91 - TODAS LAS IMÁGENES FUERON PROCESADAS CORRECTAMENTE EN Tiempo: 32.992740467998374, promedio: 2.062046's
+main_builder.py:100 - SIZE/SENDED: 9918.0 B / 15
+main_builder.py:48 - Tiempo: 33.44567240900142 total en completar el proceso de tranformación de imagenes

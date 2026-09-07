@@ -21,6 +21,7 @@
 *.prof
 *.npy
 *.npz
+*.c
 
 # Ignorar archivos especificos
 perfectocr.txt

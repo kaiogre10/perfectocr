@@ -26,4 +26,4 @@ extern "C" {
     #ifdef __cplusplus
 }
 #endif
-#endif  // IMAGE_CONTAINER_H
+#endif

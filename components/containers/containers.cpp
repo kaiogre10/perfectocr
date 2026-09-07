@@ -1,4 +1,5 @@
 #include "containers.h"
+#include "image.hpp"
 #include <vector>
 #include <queue>
 #include <cstdint>
@@ -15,7 +16,19 @@ extern "C" {
     void container_create(const int trigger) {
         if (trigger > 0 && g_canal == nullptr) 
             g_canal = new PayloadContainer(); // El contenedor nace vacío en el heap
-    }
+    };
+    bool release_image(ImageContainer* image_ptr) {
+        if (!image_ptr) {
+            throw std::runtime_error("PUNTERO INVÁLIDO, NO SE LIBERÓ IMAGEN");
+            return false;
+        }
+        delete_image(image_ptr);
+        if (image_ptr != nullptr) {
+            throw std::runtime_error("NO SE LIBERÓ PUNTERO");
+            return false;
+        }
+        return true;
+    };
 }
 
 void push(std::vector<uint8_t>&& plain_payload) {

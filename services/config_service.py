@@ -34,14 +34,19 @@ class ConfigService:
     @property
     def clean_project(self) -> bool:
         return self.validated_config.clean_project
+    
+    @property
+    def compile_cython(self) -> bool:
+        return self.validated_config.compile_cython
 
     @property
     def log_params(self) -> Dict[str, str]:
+        """Parametros de configuracion logger"""
         return self.validated_config.log_params
 
     @property
     def logs_debug(self) -> Dict[str, Any]:
-        """Devuelve la configuración para los logs en termial y archivo"""
+        """Devuelve la activacion de los logs en terminal y archivo log"""
         return self.validated_config.logs_debug
 
     @property

@@ -12,6 +12,6 @@ target_include_directories(containers
 )
 
 target_link_libraries(containers 
-    PUBLIC 
+    PUBLIC
         ${OS_FRONTIER_LIBS}
 )

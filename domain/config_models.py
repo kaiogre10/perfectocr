@@ -11,6 +11,9 @@ class SystemPaths(ConfigWithNumpy):
     containers: str
     buffer_handler: str
     temp_path: List[str]
+    compile_command: List[str]
+    comp_utils_name: str
+    comp_utils_path: List[str]
     
 class SystemParams(ConfigWithNumpy):
     system_paths: SystemPaths
@@ -24,6 +27,7 @@ class DeploySettings(ConfigWithNumpy):
     handle_memory: bool
     update_model: bool
     test_wf_model: bool
+    compile_cython: bool
 
 class PipelineConfig(ConfigWithNumpy):
     image_preparation_stager: Optional[List[str]] = None

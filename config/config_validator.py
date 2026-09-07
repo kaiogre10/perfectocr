@@ -78,6 +78,10 @@ class ConfigValidator:
     def db_local(self) -> bool:
         return bool(self.deploy_settings.get("postgre_local"))
     
+    @property
+    def compile_cython(self) -> bool:
+        return bool(self.deploy_settings.get("compile_cython"))
+    
     @cached_property
     def no_activate_modules(self) -> bool: # Parametro automátizado que permite arrancar el sistema para testear parametros de alto nivel sin crear objetos pesados de manera innecesaria
         """(deploy_mode == True) and (elemental_params == False)"""
@@ -118,23 +122,33 @@ class ConfigValidator:
     @cached_property
     def system_paths(self) -> Dict[str, Any]:
         system_paths = self.system_params.get("system_paths", {})
-        extension = get_so()
+        
+        if self.compile_cython:
+            _comp_utils_path = system_paths["comp_utils_path"]
+            system_paths["pxy_file_path"] = os.path.join(self.project_root, *_comp_utils_path)
+        
+        if self.handle_memory:
+            extension = get_so()
+            
+            libs_path = system_paths.get("libs_path", "")
+            containers = system_paths.get("containers", "")
+            buffer_handler = system_paths.get("buffer_handler", "")
+            
+            container_path = os.path.join(self.project_root, libs_path, (containers + extension))
+            buffer_path = os.path.join(self.project_root, libs_path, (buffer_handler + extension))
+            
+            if not os.path.isfile(container_path) or not os.path.isfile(buffer_path):
+                self.handle_memory = False
+                basic_exc_logger("NO EXISTEN LOS BINARIOS SE MODIFCA A FALSE EL MANEJO DE MEMORIA")
+            
+            system_paths["containers"] = container_path
+            system_paths["buffer_handler"] = buffer_path
+        
         output_paths = system_paths["output_paths"]
         temp_path = system_paths["temp_path"]
         
-        libs_path = system_paths.get("libs_path", "")
-        containers = system_paths.get("containers", "")
-        buffer_handler = system_paths.get("buffer_handler", "")
         system_paths["output_paths"] = [os.path.join(self.project_root, folder) for folder in output_paths]
         system_paths["temp_path"] = os.path.join(self.project_root, *temp_path)
-        container_path = os.path.join(self.project_root, libs_path, (containers + extension))
-        buffer_path = os.path.join(self.project_root, libs_path, (buffer_handler + extension))
-        if not os.path.isfile(container_path) or not os.path.isfile(buffer_path):
-            self.handle_memory = False
-            basic_exc_logger("NO EXISTEN LOS BINARIOS SE MODIFCA A FALSE EL MANEJO DE MEMORIA")
-            
-        system_paths["containers"] = container_path
-        system_paths["buffer_handler"] = buffer_path
         
         return system_paths
 

@@ -31,12 +31,12 @@ ImageContainer* create_img_buffer(int width, int height, int channels) {
 
 void delete_image(ImageContainer* img) {
     if (img) {
-        // El orden de liberación es CRÍTICO. TÚ lo controlas.
+        // El orden de liberación es CRÍTICO.
         if (img->data) {
             free(img->data);   // 1. Liberas los píxeles
             img->data = NULL;  // 2. (Opcional) Marcas como nulo para evitar doble free
         }
-        free(img);             // 3. Liberas el contenedor
+        free(img);             // 3. Liberar el contenedor
     }
 }
 

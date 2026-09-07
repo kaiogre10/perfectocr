@@ -1,29 +1,31 @@
 import os
 import sys
-
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 import services.system_service as system_service
+from typing import Dict
 
-PYX_FILE = os.path.abspath(os.path.join(PROJECT_ROOT, "utils", "compiled_utils", "compiled_funcs.pyx"))
+def build_extensions(project_root: str, config: Dict[str, str]):
+    PYX_FILE = config.get("pxy_file_path", "")
+    comp_utils_name = config.get("comp_utils_name", "")
+    extensions = [
+        Extension(
+            name=comp_utils_name,
+            sources=[PYX_FILE],
+        )
+    ]
+    command = config["compile_command"]
+    old_argv = sys.argv
+    sys.argv = command
+    try:
+        setup(
+            ext_modules=cythonize(
+                extensions,
+                compiler_directives={"language_level": "3"},
+            ),
+        )
+    finally:
+        sys.argv = old_argv
 
-extensions = [
-    Extension(
-        name="utils.compiled_utils.compiled_funcs",
-        sources=[PYX_FILE],
-    )
-]
-
-setup(
-    ext_modules=cythonize(
-        extensions,
-        compiler_directives={"language_level": "3"},
-    )
-)
-
-system_service.set_system_config(PROJECT_ROOT, {})
-system_service.cleanup_project(aditional_files=".c")
+    system_service.set_system_config(project_root, {})
+    system_service.cleanup_project()

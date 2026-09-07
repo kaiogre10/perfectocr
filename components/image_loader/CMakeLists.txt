@@ -2,7 +2,6 @@
 add_library(image_loader SHARED
     "image_loader.cpp"
     "image_loader.h"
-
 )
 set(OpenCV_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../opencv_dep/build")
 if(NOT EXISTS "${OpenCV_DIR}/OpenCVConfig.cmake")

@@ -8,7 +8,7 @@ from app.models_builder import ModelsBuilder
 from utils.text_utils import normalice_text
 from utils.image_utils import elevate_dims
 from services.output_service import save_text_debug
-from utils.compiled_utils import validate_text
+from utils.compiled_utils import validate_text, space_removal
 
 logger = logging.getLogger(__name__)
 
@@ -99,10 +99,17 @@ class PaddleOCRWrapper(OCRAbstractWorker):
                     continue
                 
                 else:
-                    norm_text = normalice_text(text)
-                    if not norm_text or not validate_text(text):
+                    if text.isascii():
+                        # if " " not in text:
+                        #     norm_text = text
+                        # else:
+                        norm_text = space_removal(text)
+                    else:
+                        norm_text = normalice_text(text)
+                        
+                    if not norm_text or not validate_text(norm_text):
                         if self.del_output_log:
-                            logger.info(f"OCR FILTRO: {polygon_ids[idx]}: '{text}' -> '{norm_text}', CONF: {confidence*100.0} %")
+                            logger.info(f"TEXTO INVALIDO: {polygon_ids[idx]}: '{text}' -> '{norm_text}', CONF: {confidence*100.0} %")
                         continue
 
                     raw_map[polygon_ids[idx]] = {"text": norm_text}
