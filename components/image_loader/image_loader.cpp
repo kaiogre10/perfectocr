@@ -1,5 +1,6 @@
 #include "image_loader.h"
 #include <cstdint>
+#include <string>
 #include <opencv2/core.hpp>
 #include "../c_utils/c_utils.hpp"
 #include "../containers/image.hpp"
@@ -7,20 +8,17 @@
 extern "C" {
     void load_image(const char* filepath) {
         if (!filepath) {
-            throw std::runtime_error("RUTA DE IMAGEN INVALIDA");
             return;
         }
         // 1. Carga multiformato sin alterar canales originales (IMREAD_UNCHANGED)
         cv::Mat image_temp = cv::imread(filepath, cv::IMREAD_UNCHANGED);
         if (image_temp.empty()) {
-            throw std::runtime_error("FALLO LA CARGA DE LA IMAGEN");
             return;
         }
         // 2. Normalización según espacio de color de entrada
         image_utils::normalize_image(image_temp);
         int channels = image_temp.channels();
         if (channels != 1) {
-            throw std::runtime_error("NORMALIZACION DEVOLVIO MAS DE UN CANALD DE IMAGEN");
             return;
         }
         // En este punto la imagen ya está en escala de grises normalizada a uint8
@@ -31,7 +29,6 @@ extern "C" {
 
         uint8_t* img_ptr = image_get_data(image);
         if (!img_ptr) {
-            throw std::runtime_error("PUNTERO C INVALIDO");
             return;
         }
 
@@ -39,7 +36,6 @@ extern "C" {
         size_t image_size = image_get_size(image);
 
         if (total_bytes != image_size) {
-            throw std::runtime_error("SIZE DIFERENTE, VERIFICAR NORMALIZACION");
             return;
         }
 

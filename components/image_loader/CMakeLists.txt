@@ -18,6 +18,8 @@ target_include_directories(image_loader PUBLIC
 target_link_libraries(image_loader PRIVATE
     ${OpenCV_LIBS}
     ${OS_FRONTIER_LIBS}
+    c_utils
+    containers
 )
 
 # Despliegue de DLLs de OpenCV en Windows hacia tu GLOBAL_DESTINATION (../bin)

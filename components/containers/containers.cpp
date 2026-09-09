@@ -19,12 +19,10 @@ extern "C" {
     };
     bool release_image(ImageContainer* image_ptr) {
         if (!image_ptr) {
-            throw std::runtime_error("PUNTERO INVÁLIDO, NO SE LIBERÓ IMAGEN");
             return false;
         }
         delete_image(image_ptr);
         if (image_ptr != nullptr) {
-            throw std::runtime_error("NO SE LIBERÓ PUNTERO");
             return false;
         }
         return true;

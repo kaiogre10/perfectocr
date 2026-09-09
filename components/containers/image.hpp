@@ -6,7 +6,7 @@
 #include <utility>
 #include <cstdint>
 
-class ImageContainer {
+class Image {
 private:
     struct Deleter {
         void operator()(ImageContainer* p) const {
@@ -20,7 +20,7 @@ private:
     std::unique_ptr<ImageContainer, Deleter> ptr;
 
 public:
-    explicit ImageContainer(int width, int height, int channels)
+    explicit Image(int width, int height, int channels)
         : ptr(create_img_buffer(width, height, channels)) {
         if (!ptr) {
             throw std::runtime_error("Error creando Image");
@@ -28,14 +28,14 @@ public:
     }
     // === DELETE DE COPIA (¡PROHIBIDO!) ===
     // Esto evita que alguien haga: Image img2 = img1;
-    ImageContainer(const ImageContainer&) = delete;
-    ImageContainer& operator=(const ImageContainer&) = delete;
+    Image(const Image&) = delete;
+    Image& operator=(const Image&) = delete;
 
     // === MOVE SEMANTICS (TÚ decides ceder el ownership) ===
     // Esto permite: Image img2 = std::move(img1);
-    ImageContainer(ImageContainer&& other) noexcept: ptr(std::move(other.ptr)) {}
+    Image(Image&& other) noexcept: ptr(std::move(other.ptr)) {}
 
-    ImageContainer& operator=(ImageContainer&& other) noexcept {
+    Image& operator=(Image&& other) noexcept {
         if (this != &other) {
             ptr = std::move(other.ptr);
         }

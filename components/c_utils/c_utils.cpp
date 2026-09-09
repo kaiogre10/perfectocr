@@ -5,8 +5,8 @@
 namespace {
     const int black_thr = 160;
     const int white_thr = 180;
-    const inline cv::Scalar three_channels = cv::Scalar(255, 255, 255);
-    const inline cv::Scalar four_channels = cv::Scalar(255, 255, 255, 255);
+    const cv::Scalar three_channels = cv::Scalar(255, 255, 255);
+    const cv::Scalar four_channels = cv::Scalar(255, 255, 255, 255);
 };
 
 namespace image_utils {
@@ -30,15 +30,19 @@ namespace image_utils {
         cv::Mat mask_valid = black_condition | white_condition;
 
         // Rellenar píxeles no válidos con blanco
-        if (channels == 3) {
+        switch (channels) {
+            case 3:
                 image.setTo(three_channels, ~mask_valid);
-        } else { // channels == 4
+                break;
+            case 4:
                 image.setTo(four_channels, ~mask_valid);
+                break;
         }
             
         if (!validate_image(image)) {
             image.release();
         }
+        return;
     }
 
     void make_contiguous(cv::Mat& image) {

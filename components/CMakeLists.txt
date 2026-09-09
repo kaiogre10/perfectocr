@@ -8,6 +8,10 @@ endif ()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
 option(BUILD_SHARED_LIBS "Fuerza la compilación de librerías dinámicas" ON)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM")
@@ -69,7 +73,8 @@ set(CMAKE_IMPORT_LIBRARY_PREFIX "")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Orden secuencial por dependencias
-add_subdirectory(buffer_handler)
+add_subdirectory(c_utils)
 add_subdirectory(containers)
 add_subdirectory(image_loader)
-add_subdirectory(c_utils)
+add_subdirectory(buffer_handler)
+
