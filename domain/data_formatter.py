@@ -26,8 +26,8 @@ class DataFormatter:
         self.table_correct_log = logs_config.get("table_correct", False)
 
     def reset_data(self) -> None:
-        self.workflow: Optional[WorkflowData] = None
-        self.payload: Optional[Payload] = None
+        self.workflow = None
+        self.payload = None
         
     def create_workflow(self, gray_img: np.ndarray[Any, np.dtype[np.uint8]], metadata: Dict[str, Any]) -> bool:
         """Crea un nuevo workflow usando dataclasses"""
@@ -420,9 +420,7 @@ class DataFormatter:
             logger.error(f"Error guardando structured_table en memoria: {e}", exc_info=True)
         return False
     
-    def store_payload(self, payloads: List[str]):
-        payload = payloads[0]
-        image_name = payloads[1]
-        payload = Payload(payload=payload, name=image_name)
+    def store_payload(self, payload: str, buff_size: int):
+        payload = Payload(payload=payload, buff_size=buff_size)
         self.payload = dataclasses.replace(payload)
         return True

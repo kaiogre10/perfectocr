@@ -4,14 +4,14 @@ import logging
 from services.log_service import get_time_stamp, now
 import numpy as np
 from typing import Dict, Any, Tuple, List
-from utils.text_utils import format_cuant, get_rfc, get_ids, noramalize_df_text, its_similar, fast_classfier
+from utils.text_utils import format_cuant, get_rfc, get_ids, noramalize_df_text, its_similar, fast_classfier, is_quantitative
 from core.assets.patterns import umd_patterns
 from utils.math_utils import validate_df, check_full_df, decimalice_df
 from utils.compiled_utils import validate_text, space_removal
 from services.output_service import save_debug_table
 from domain.abstract_worker import VectorizationAbstractWorker
 from domain.data_formatter import DataFormatter
-from domain.class_models import SemantiClass, KeyField, DataKeys
+from domain.class_models import SemantiClass, KeyField, DataKeys, TypeModels
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class FinalStructurer(VectorizationAbstractWorker):
 
     def vectorize(self, context: Dict[str, Any], manager: DataFormatter):
         try:
-            df, image_name = self.collect_data(manager)
+            df = self.collect_data(manager)
             if df.empty:
                 return False
             
@@ -37,23 +37,23 @@ class FinalStructurer(VectorizationAbstractWorker):
                 file_name: str = manager.workflow.metadata.image_name if manager.workflow else "" # type: ignore
                 save_debug_table(df, file_name, self.output, self.stack)
                 
-            payload = self.transform_data(df)
+            payload, buff_size = self.transform_data(df)
 
-            if manager.store_payload([payload, image_name]):
+            if manager.store_payload(payload, buff_size):
                 return True
         except Exception as e:
             logger.error(f"Error recolectando datos: '{e}'", exc_info=True)
         return False
 
-    def collect_data(self, manager: DataFormatter) -> Tuple[pd.DataFrame, str]:
+    def collect_data(self, manager: DataFormatter) -> pd.DataFrame:
         structured_data = manager.workflow.table_data if manager.workflow else None
         if structured_data is None:
-            return (pd.DataFrame(), "")
+            return pd.DataFrame()
         
         df = structured_data.df_table
         metadata = manager.workflow.metadata if manager.workflow else None
         if df is None or df.empty or metadata is None:
-            return (pd.DataFrame(), "")
+            return pd.DataFrame()
 
         image_name = metadata.image_name if metadata else ""
         now_id = now()
@@ -62,40 +62,43 @@ class FinalStructurer(VectorizationAbstractWorker):
         
         df, totals = self.standarice_df(df, manager, idx)
         if df.empty:
-            return (pd.DataFrame(), "")
+            return pd.DataFrame()
 
         polygons = manager.workflow.polygons if manager.workflow else {}
         if not polygons:
-            return (pd.DataFrame(), "")
+            return pd.DataFrame()
         
         db_values: Dict[str, Any] = {}
         for _, poly_data in enumerate(polygons.values()):
             kf_list = poly_data.key_field
             value = poly_data.ocr_text or ""
             
-            if kf_list is not None and value:
-                kf = kf_list[0]
-                if not kf:
-                    continue
+            if kf_list is None:
+                continue
+                
+            if not value:
+                continue
+            
+            kf = kf_list[0]
 
-                if kf != KeyField.header.value:  # Excluir KeyFields innecesarios
-                    if kf == KeyField.rfc_prov.value:  # RFCProveedor
-                        value = get_rfc(value)
+            if kf != KeyField.header.value:  # Excluir KeyFields innecesarios
+                if kf == KeyField.rfc_prov.value:  # RFCProveedor
+                    value = get_rfc(value)
 
-                    elif kf in (KeyField.total_doc.value, KeyField.total_art.value):
+                elif kf in ([KeyField.total_doc.value, KeyField.total_art.value]):
+                    if not value.replace(" ", "").isalpha():
                         value = format_cuant(value)
-                    
-                    try:
-                        field_name = KeyField(kf).name
-                    except ValueError:
-                        continue
-                    
-                    db_values[field_name] = value  # 'MontoTotalDocumento': '1024.12'
+                
+                try:
+                    field_name = KeyField(kf).name
+                except ValueError:
+                    continue
+                
+                db_values[field_name] = value  # 'MontoTotalDocumento': '1024.12'
         
         id_prov = get_ids(image_name, DataKeys.id_proveedor.value)
 
         db_values.update(totals)
-        db_values["image_name"] = image_name
         db_values[DataKeys.id_proveedor.value] = id_prov
         db_values[DataKeys.id_cliente.value] = 1
         db_values[DataKeys.nombre_cliente.value] = "cliente_demo"
@@ -105,13 +108,15 @@ class FinalStructurer(VectorizationAbstractWorker):
 
         # logger.info(f"{db_values}")
         manager.reset_data()
-        return (df, image_name)
+        return df
     
     def standarice_df(self, df: pd.DataFrame, manager: DataFormatter, idx: str) -> Tuple[pd.DataFrame, Dict[str, str]]:
+        
         mtl_col = df[DataKeys.costo_tran.value]
         c_col = df[DataKeys.cantidad_art.value]
         pu_col = df[DataKeys.precio_unitario.value]
         product_col = df[DataKeys.producto_norm.value]
+        
         df = pd.concat([c_col, product_col, pu_col, mtl_col], axis=1)
         df = self.clean_df(df, manager)
         
@@ -122,14 +127,12 @@ class FinalStructurer(VectorizationAbstractWorker):
         c_col = df[DataKeys.cantidad_art.value]
         
         mtl_col_dec = decimalice_df(mtl_col)
-        # mtl_col_dec = mtl_col.map(lambda x: Decimal(x[0:-1])) # type: ignore
         c_col_dec = decimalice_df(c_col)
-        # c_col_dec = c_col.map(lambda x: Decimal(x[0:-1])) # type: ignore
         
-        total_total = str(sum(mtl_col_dec))
-        total_prod = str(sum(c_col_dec))
+        total_total = format_cuant(str(sum(mtl_col_dec)))
+        total_prod = format_cuant(str(sum(c_col_dec)))
         
-        totals = {DataKeys.art_calc.value: str(total_prod), DataKeys.total_cal.value: str(total_total), DataKeys.id_registro.value: idx}
+        totals = {DataKeys.art_calc.value: total_prod, DataKeys.total_cal.value: total_total, DataKeys.id_registro.value: idx}
         
         # df.insert(loc=0, column=DataKeys.id_registro.value, value=idx, allow_duplicates=True)
         df = df.reset_index(drop=True)
@@ -174,6 +177,7 @@ class FinalStructurer(VectorizationAbstractWorker):
             if its_similar(cant_split[-1], p_values):
                 p_values = p_values[len(cant_split[-1]):]
                 p_split = p_values.split(" ")
+                
                 if not validate_text(p_split[0]):
                     p_split.remove(p_split[0])
                     df.iat[i, pro_idx] = space_removal(" ".join(p_split))
@@ -222,14 +226,19 @@ class FinalStructurer(VectorizationAbstractWorker):
     
     def transform_data(self, df: pd.DataFrame) -> str:
         """Devuelve tamaño de cada fila y el df aplanado"""
+        df_dims = df.shape
+        last_row = df_dims[0] - 1
+        last_col = df_dims[1] - 1
+        val = df.iat[last_row, last_col]
+        df.iat[last_row, last_col] = val if len(val) == 1 else val[:-1]
+        
         plain_df: List[str] = []
-
-        for _, fila in enumerate(df.itertuples(index=False, name=None)):
-            fila = list(fila)
-
-            string_row = "".join(fila)
+        buff_size = 0
+        for _, row in enumerate(df.itertuples(index=False, name=None)):
+            row = list(row)
+            string_row = "".join(row)
+            buff_size += len(string_row.encode(TypeModels.UTF16_CSHARP.value, 'replace'))
             plain_df.append(string_row)
 
         plain_text = "".join(plain_df)
-        #logger.info(f"TAMAÑO: '{buffer_sizes}' PLAIN TEXT:\n"f"'{plain_text}'")
-        return plain_text
+        return plain_text, buff_size

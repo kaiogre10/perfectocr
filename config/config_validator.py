@@ -123,26 +123,26 @@ class ConfigValidator:
     def system_paths(self) -> Dict[str, Any]:
         system_paths = self.system_params.get("system_paths", {})
         
-        if self.compile_cython:
-            _comp_utils_path = system_paths["comp_utils_path"]
-            system_paths["pxy_file_path"] = os.path.join(self.project_root, *_comp_utils_path)
-        
         if self.handle_memory:
             extension = get_so()
             
             libs_path = system_paths.get("libs_path", "")
-            containers = system_paths.get("containers", "")
+            loader = system_paths.get("loader", "")
             buffer_handler = system_paths.get("buffer_handler", "")
             
-            container_path = os.path.join(self.project_root, libs_path, (containers + extension))
+            loader_path = os.path.join(self.project_root, libs_path, (loader + extension))
             buffer_path = os.path.join(self.project_root, libs_path, (buffer_handler + extension))
             
-            if not os.path.isfile(container_path) or not os.path.isfile(buffer_path):
+            if not os.path.isfile(loader_path) or not os.path.isfile(buffer_path):
                 self.handle_memory = False
                 basic_exc_logger("NO EXISTEN LOS BINARIOS SE MODIFCA A FALSE EL MANEJO DE MEMORIA")
             
-            system_paths["containers"] = container_path
+            system_paths["loader"] = loader_path
             system_paths["buffer_handler"] = buffer_path
+        
+        if self.compile_cython:
+            _comp_utils_path = system_paths["comp_utils_path"]
+            system_paths["pxy_file_path"] = os.path.join(self.project_root, *_comp_utils_path)
         
         output_paths = system_paths["output_paths"]
         temp_path = system_paths["temp_path"]

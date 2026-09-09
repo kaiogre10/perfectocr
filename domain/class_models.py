@@ -91,3 +91,12 @@ class DataMathDict(StrEnum):
     TEXT_COL = "text_col"
     SEMANTIC_CLASIFICATION = "semantic_clasification"
     MAX_IDX = "max_idx"
+    
+class TypeModels(StrEnum):
+    ASCII = "ascii"
+    UTF8 = "utf-8"
+    UTF16_CSHARP = "utf-16-le"
+    
+class LogModels(StrEnum):
+    NO_MANGER = "NO_MANGER"
+    TIME_MASK = "Tiempo: "

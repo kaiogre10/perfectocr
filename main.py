@@ -11,6 +11,7 @@ DEFAULT_CONFIG_FILE = [PROJECT_ROOT, "config"]
 from services import log_service
 from services.config_service import ConfigService
 from services import system_service
+
 config_service = ConfigService(DEFAULT_CONFIG_FILE)
 if config_service.test_config:
     log_service.log_simple("TESTING CONFIG FINALIZANDO")

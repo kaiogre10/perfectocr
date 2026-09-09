@@ -21,7 +21,6 @@
 *.prof
 *.npy
 *.npz
-*.c
 
 # Ignorar archivos especificos
 perfectocr.txt
@@ -55,6 +54,7 @@ output/
 bin/
 migrations/
 CMakeFiles/
+utils/compiled_utils/compiled_funcs.c
 
 # secrets
 .env

@@ -1,1 +1,35 @@
-image_loader.py:21 - IMAGEN: 'C:\PerfectOCR\input\AAAA0006.png'
+storage_service.py:15 - PATHS: /home/kaiogre05/PerfectOCR/bin/image_loader.so
+image_loader.py:26 - IMAGEN: '/home/kaiogre05/PerfectOCR/input/AAAA0006.png', OUR: ['/home/kaiogre05/PerfectOCR/output/rest.png']
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.013074's:
+cantidad_art           producto_norm precio_unitario costo_tran col_4
+           3 VINCI 25 AM LIM 50 C/10           85.50     256.50    12
+           5        PUNTILLAS PM 0.5            9.49      47.45    15
+           1     PASTA CTA SURT C/25          135.00     135.00    12
+           2      FOLDER CTA CR C/10           22.50      45.00     5
+           1   SOBRE C/ROND CTA C/10           49.80      49.80     7
+           2          CREPE NGO C/10           48.00      96.00     8
+           1          KM MED NG C/12           39.90      39.90     5
+           1         KM FINO NG C/12           42.30      42.30     6
+           3 CARTA DIAM CANARIO C/10           30.00      90.00     5
+          10      PLACA UNIC 25X25X1            2.98      29.76     5
+           1 PALO RED DELG 4X60 K 95           59.28      59.28     2
+           1      GLOBO 5 SURT C/100           34.93      34.93    50
+           2   CART FLUORESC AM C/10           49.10      98.20     8
+process_builder.py:93 - Procesadas: 1 de '2' imagenes
+image_loader.py:26 - IMAGEN: '/home/kaiogre05/PerfectOCR/input/AAAA0053.png', OUR: ['/home/kaiogre05/PerfectOCR/output/rest.png']
+math_max.py:51 - DataFrame RECONSTRUIDO en 0.012876's:
+cantidad_art                      producto_norm precio_unitario costo_tran
+           1         PP FINO CUER AMA NGO C/ 12           44.40      44.40
+           1                     PP MED RJ C/12           41.40      41.40
+           1 BLOCK SOLICITUD EMPLEO CTA 25H C/3           42.60      42.60
+           1                      DIXON 21G C/4           69.93      69.93
+           2      BLOCK ALBANENE CTA 90/9 5 25H           39.90      79.80
+           1                     CREPE NAR C/10           49.80      49.80
+           1                  CREPE RS MEX C/10           49.80      49.80
+           1        LAPIZ MAPED TRIANG CJA C/12           47.40      47.40
+process_builder.py:93 - Procesadas: 2 de '2' imagenes
+process_builder.py:97 - '2 de 2' Archivos Digitalizados CORRECTAMENTE en: 4.04064543399727, promedio: 2.020322716998635's / documento
+process_builder.py:33 - PAYLOAD GUARDADO EN MEMORIA: '1462B', Y EN ARCHIVO DE SEGURIDAD
+main_builder.py:91 - TODAS LAS IMÁGENES FUERON PROCESADAS CORRECTAMENTE EN Tiempo: 4.040832998001861, promedio: 2.020416's
+main_builder.py:100 - SIZE/SENDED: 1462.0 B / 2
+main_builder.py:48 - Tiempo: 4.508881448000466 total en completar el proceso de tranformación de imagenes

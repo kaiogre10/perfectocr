@@ -6,18 +6,17 @@ import logging
 from core.assets.patterns import float_time
 import inspect
 from typing import List, Tuple, Optional, Dict, Any
+from domain.class_models import TypeModels
 
 _float_time = float_time
-temp_date_format: str = ""
 DATE_FORMAT = ""
-TEMP_FILE: str
 EXTRA_FILE_LOGS = []
 
 def now():
     return datetime.now()
 
 def get_time_stamp(moment: Any, date_format: str):
-    return f"{moment.strftime((date_format if date_format else temp_date_format))}"
+    return f"{moment.strftime(date_format)}"
 
 def get_caller_info() -> Tuple[str, str]:
     """[nombre, linea]"""
@@ -28,7 +27,7 @@ def get_logging_info(get_caller_info: Tuple[str, str]) -> str:
     return f"{get_time_stamp(now(), DATE_FORMAT)} - {get_caller_info[0]}:{get_caller_info[1]} "
 
 def setup_logging(project_root: str, config: Dict[str, str]) -> None:
-    global DATE_FORMAT, temp_date_format
+    global DATE_FORMAT
     """
     Inicializa los descriptores de archivo y la salida por consola.
     Debe invocarse antes de cualquier operación de registro en el sistema.
@@ -38,7 +37,6 @@ def setup_logging(project_root: str, config: Dict[str, str]) -> None:
     console_format = config.get('console_format', "")
     file_format = config.get('file_format', "")
     DATE_FORMAT = config.get('date_format', "")
-    temp_date_format = config.get('temp_date_format', "")
     temp_path_file = config.get("temp_path_file", "")
     
     _log_root = logging.getLogger()
@@ -70,9 +68,9 @@ def setup_logging(project_root: str, config: Dict[str, str]) -> None:
 def _add_file_handler(log_root: logging.Logger, project_root: str, filename: str, level: str, formatter: logging.Formatter) -> None:
     path = os.path.join(project_root, filename)
     if not os.path.exists(path):
-        open(path, "a", encoding="utf-8").close()
+        open(path, "a", encoding=TypeModels.UTF8.value).close()
 
-    handler = logging.FileHandler(path, mode="w", encoding="utf-8")
+    handler = logging.FileHandler(path, mode="w", encoding=TypeModels.UTF8.value)
     handler.setFormatter(formatter)
     handler.setLevel(level.upper())
     log_root.addHandler(handler)
@@ -138,5 +136,5 @@ def format_elapsed_time(seconds: float) -> str:
 #         return True
 
 def reset_temp_file(TEMP_FILE: str):
-    with open(TEMP_FILE, "w", encoding="utf-16-le"):
+    with open(TEMP_FILE, "w", encoding=TypeModels.UTF16_CSHARP.value):
         pass

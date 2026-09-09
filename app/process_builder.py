@@ -5,6 +5,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from domain.data_formatter import DataFormatter
 from services.storage_service import storage_data
 from services.output_service import write_temp_log
+from domain.class_models import LogModels
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +24,10 @@ class ProcessingBuilder:
         if not results:
             return None
 
-        plain_text = [text[1] for text in results]
         names = [text[0] for text in results]
         
         if self.memory:
+            plain_text = [text[1] for text in results]
             buff_size = storage_data(plain_text)
             if buff_size is not None:
                 logger.warning(f"PAYLOAD GUARDADO EN MEMORIA: '{sum(buff_size)}B', Y EN ARCHIVO DE SEGURIDAD")
@@ -35,10 +36,10 @@ class ProcessingBuilder:
             return None
         else:
             logger.debug("NO SE ACTIVO MEMORIA DINÁMICA, SE REGRESAN LOS BYTES ESTIMADOS SOLAMENTE")
-            buff_size = [(len(text.encode("ascii", 'ignore') * 2)) for text in plain_text]
+            buff_size = [text[2] for text in results]
             return names, buff_size
     
-    def process_images(self, query: List[str]) -> List[Tuple[str, str]]:
+    def process_images(self, query: List[str]) -> List[Tuple[str, str, int]]:
         """Procesa una sola imagen usando el método execute() uniforme de cada stager"""
         total_images = len(query)
         images = 0
@@ -64,30 +65,34 @@ class ProcessingBuilder:
             
                 if self.time_stages_log:
                     logger.warning(f"Fase de '{stager_name[:-6].upper()}' completada en: {stager_time:.6f}'s")
-                    
+            
             if manager is None:
                 continue
             
-            plain_text = manager.payload.payload if manager.payload else "NO_MANAGER" # type: ignore
-            name = manager.payload.name if manager.payload else "NO_MANGER"  # type: ignore
-            manager.reset_data()    # type: ignore
-            payload: Tuple[str, str] = tuple([name, plain_text])
-
-            if "NO_MANGER" == plain_text or "NO_MANGER" == name:
-                logger.info("PROCESO COMPLETADO, PRUEBA MOCK SE DEVUELVEN DATOS FALSOS")
+            buff_size = manager.payload.buff_size if manager.payload else 0
+            name = image_data.replace("\\", "/").split("/")[-1].split(".")[0]
+            
+            if self.memory:
+                plain_text = manager.payload.payload if manager.payload else LogModels.NO_MANGER.value
                 manager.reset_data()    # type: ignore
-                continue
-                 
-            elif not write_temp_log(payload):
-                logger.error("NO SE PUDO GENERAR ARCHIVO DE SEGURIDAD")
-                continue
+    
+                if LogModels.NO_MANGER.value == plain_text:
+                    logger.info("PROCESO COMPLETADO, PRUEBA MOCK SE DEVUELVEN DATOS FALSOS")
+                    continue
+                    
+                elif not write_temp_log(plain_text):
+                    logger.error("NO SE PUDO GENERAR ARCHIVO DE SEGURIDAD")
+                    continue
+                else:
+                    results.append([name, plain_text, buff_size])
+            
+            else:
+                manager.reset_data()
+                results.append([name, "", buff_size])
                 
             logger.warning(f"Procesadas: {images} de '{total_images}' imagenes")
-            results.append(payload)
-            continue
             
         total_processing_time = time.perf_counter() - start_time
         
-        # if results:
         logger.warning(f"'{len(results)} de {total_images}' Archivos Digitalizados CORRECTAMENTE en: {total_processing_time}, promedio: {total_processing_time / total_images}'s / documento")
         return results

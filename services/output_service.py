@@ -8,6 +8,7 @@ import pandas as pd # type: ignore
 from typing import Dict, Any, List, Tuple, Optional
 from services.log_service import get_caller_info
 from utils.file_handler import save_image, save_yaml, save_table
+from domain.class_models import TypeModels
 # from collections.abc import Callable
 # from typing import TypeAlias
 
@@ -145,13 +146,13 @@ def to_serializable(obj: Any) -> Any:
     else:
         return obj
         
-def write_temp_log(payload_temp: Tuple[str, str]) -> bool:
-    if not payload_temp[0] or not payload_temp[1]:
+def write_temp_log(payload_temp: str) -> bool:
+    if not payload_temp:
         raise TypeError("DATOS PARA REGISTRO VACIOS")
     
-    with open(TEMP_FILE, "a", encoding="utf-16-le") as file_temp:
+    with open(TEMP_FILE, "a", encoding=TypeModels.UTF16_CSHARP.value) as file_temp:
         # time = get_time_stamp(False)
-        file_temp.write(f"{payload_temp[1]}\n")
+        file_temp.write(f"{payload_temp}\n")
         return True
 
 def serialize_arrays(array_input: np.ndarray[Any, Any]):

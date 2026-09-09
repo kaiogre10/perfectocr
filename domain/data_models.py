@@ -60,4 +60,4 @@ class WorkflowData:
 @dataclass(slots=True)
 class Payload:
     payload: Optional[str]
-    name: Optional[str]
+    buff_size: int

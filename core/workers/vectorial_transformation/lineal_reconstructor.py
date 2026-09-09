@@ -6,6 +6,7 @@ from domain.abstract_worker import VectorizationAbstractWorker
 from domain.data_formatter import DataFormatter
 from services.output_service import save_text_debug
 from domain.class_models import KeyField
+from utils.compiled_utils import space_removal
 
 logger = logging.getLogger(__name__)
 
@@ -131,8 +132,6 @@ class LinealReconstructor(VectorizationAbstractWorker):
 
             header_line = line_counter if (headers and headers.intersection(set(polygons_index)) and header_idx == 0) else None
             footer_line = line_counter if (footers and footers.intersection(set(polygons_index)) and footer_idx == 0) else None
-             
-            tabular_line = False
 
             if header_line is not None:
                 header_idx = header_line  # Asignación directa, no suma
@@ -152,7 +151,7 @@ class LinealReconstructor(VectorizationAbstractWorker):
             else:
                 tabular_line = False
 
-            joined_text = " ".join(texts).strip()
+            joined_text = space_removal(" ".join(texts))
 
             # Validar el texto antes de crear la entrada
             if not joined_text:

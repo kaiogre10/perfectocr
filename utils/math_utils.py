@@ -513,7 +513,7 @@ def validate_df(df: pd.DataFrame) -> bool:
             
 def check_full_df(df: pd.DataFrame) -> bool:
     """Devuelve true si todas las celdas tienen strings válidos"""
-    return not (df.isnull().values.any() or (df == "").values.any())
+    return not (df.isnull().values.any() or (df == "").values.any() or df.map(lambda s: not s.isascii()).values.any())
 
 def decimalice_df(df: pd.DataFrame | Series):
     """Pasa a decimal todos los Valores de un DataFrame"""

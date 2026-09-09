@@ -72,9 +72,12 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_IMPORT_LIBRARY_PREFIX "")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-# Orden secuencial por dependencias
+# 1. Dependencias Internas (Compilación STATIC)
 add_subdirectory(c_utils)
+add_subdirectory(file_handler)
 add_subdirectory(image_container)
 add_subdirectory(payload_container)
+
+# 2. Interfaces de Exportación (Compilación SHARED)
 add_subdirectory(image_loader)
 add_subdirectory(buffer_handler)

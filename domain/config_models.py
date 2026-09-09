@@ -8,7 +8,7 @@ class ConfigWithNumpy(BaseModel):
 class SystemPaths(ConfigWithNumpy):
     output_paths: List[str]
     libs_path: str
-    containers: str
+    loader: str
     buffer_handler: str
     temp_path: List[str]
     compile_command: List[str]
@@ -61,7 +61,7 @@ class LogParams(ConfigWithNumpy):
     console_format: str
     file_format: str
     date_format: str
-    temp_date_format: str
+    # temp_date_format: str
     temp_path_file: str
 
 class LogsConfig(ConfigWithNumpy):

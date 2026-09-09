@@ -61,7 +61,6 @@ class DataFinder(OCRAbstractWorker):
                 return {}
         
             polygon_updates: Dict[str, List[int]] = {}
-            skipped_semantic = 0
 
             all_idx = np.asarray([p.poly_index for p in polygons.values()], np.int16)
 
@@ -76,13 +75,10 @@ class DataFinder(OCRAbstractWorker):
             
             for _, (pid, poly) in enumerate(polygons.items()):
                 if poly.poly_index in skip_idx:
-                    # logger.info(f"{pid} Omitido: '{poly.ocr_text}' | sc: {poly.semantic_clasification}")
-                    skipped_semantic += 1
                     continue
 
                 kf = poly.key_field or None
                 if kf is not None:
-                    skipped_semantic += 1
                     logger.debug(f"KeyField redundante: {pid}: '{poly.ocr_text}' | sc: {poly.semantic_clasification}")
                     continue
 
@@ -96,7 +92,6 @@ class DataFinder(OCRAbstractWorker):
                 
                 if not validate_text(ocr_text):
                     logger.debug(f"Texto INVÁLIDO: '{ocr_text}' | sc: {poly.semantic_clasification}")
-                    skipped_semantic += 1
                     continue
             
                 else:
@@ -141,7 +136,7 @@ class DataFinder(OCRAbstractWorker):
                         continue
                         
             if polygon_updates:
-                logger.debug(f"{len(polygon_updates)} KEY FIELDS ENCONTRADOS EN: {time.perf_counter() - time0:.6}'s, {skipped_semantic} omisiones:\n"f"{polygon_updates}")
+                logger.debug(f"{len(polygon_updates)} KEY FIELDS ENCONTRADOS EN: {time.perf_counter() - time0:.6}'s,:\n"f"{polygon_updates}")
                 return polygon_updates
                 # return self.get_key_fields_values(manager, polygon_updates)
             else:
@@ -149,7 +144,7 @@ class DataFinder(OCRAbstractWorker):
                 return {}
 
         except ValueError as e:
-            logger.warning(f"Error encontrando keyfields: {e}")
+            logger.warning(f"Error encontrando keyfields: {e}", exc_info=True)
             return {}
         
     def get_key_fields_values(self, manager: DataFormatter, polygon_updates: Dict[str, List[int]]) -> Dict[str, List[int]]:

@@ -95,8 +95,8 @@ class TextCorrector(OCRAbstractWorker):
             if bool(_bad_title.fullmatch(text)):
                 text = text.replace(" ", "").strip()
                 tokens = [text]
-
-            tokens = text.split(' ')
+            else:
+                tokens = text.split(' ')
             
         else:
             tokens = [text]
@@ -185,9 +185,17 @@ class TextCorrector(OCRAbstractWorker):
         elif text.isupper() or text.islower() or text.istitle():
             return text
         else:
-            total_text = len(text)
-            total_uppers = (text.count(ascii_uppercase) / total_text)
-            total_lowers = (text.count(ascii_lowercase) / total_text)
+            all_uppers = text.count(ascii_uppercase)
+            all_lowers = text.count(ascii_lowercase)
+            
+            if text.isalpha():
+                total_text = len(text)
+            else:
+                total_text = all_lowers + all_uppers
+                
+            total_lowers = 0 if all_lowers < 1 else all_lowers / total_text
+            total_uppers = 0 if all_uppers < 1 else all_uppers / total_text
+            
             if total_uppers > total_lowers or total_lowers < 0.1:
                 return text.upper()
             elif total_lowers > total_uppers or total_uppers < 0.1:

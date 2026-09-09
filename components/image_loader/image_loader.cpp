@@ -1,8 +1,8 @@
 #include "image_loader.h"
 #include <cstdint>
-#include <string>
 #include <opencv2/core.hpp>
 #include "../c_utils/c_utils.hpp"
+#include "../file_handler/file_handler.hpp"
 #include "../image_container/image.hpp"
 
 extern "C" {
@@ -11,12 +11,14 @@ extern "C" {
             return;
         }
         // 1. Carga multiformato sin alterar canales originales (IMREAD_UNCHANGED)
-        cv::Mat image_temp = cv::imread(filepath, cv::IMREAD_UNCHANGED);
+        cv::Mat image_temp;
+        files_handler::load_img(filepath, image_temp);
         if (image_temp.empty()) {
             return;
         }
         // 2. Normalización según espacio de color de entrada
         image_utils::normalize_image(image_temp);
+
         int channels = image_temp.channels();
         if (channels != 1) {
             return;

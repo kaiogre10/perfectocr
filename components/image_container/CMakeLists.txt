@@ -1,7 +1,7 @@
 add_library(image_container STATIC
-	"image.hpp"
 	"image_container.c"
 	"image_container.h"
+    "image.hpp"
 )
 
 target_include_directories(image_container 

@@ -25,9 +25,9 @@ namespace image_utils {
         cv::split(image, bgr_planes);
 
         // Para BGR: bgr_planes[0]=B, [1]=G, [2]=R
-        cv::Mat black_condition = (bgr_planes[0] < black_thr) & (bgr_planes[1] < black_thr) & (bgr_planes[2] < black_thr);
-        cv::Mat white_condition = (bgr_planes[0] > white_thr) & (bgr_planes[1] > white_thr) & (bgr_planes[2] > white_thr);
-        cv::Mat mask_valid = black_condition | white_condition;
+        const cv::Mat black_condition = (bgr_planes[0] < black_thr) & (bgr_planes[1] < black_thr) & (bgr_planes[2] < black_thr);
+        const cv::Mat white_condition = (bgr_planes[0] > white_thr) & (bgr_planes[1] > white_thr) & (bgr_planes[2] > white_thr);
+        const cv::Mat mask_valid = black_condition | white_condition;
 
         // Rellenar píxeles no válidos con blanco
         switch (channels) {
@@ -53,7 +53,7 @@ namespace image_utils {
     }
 
     bool validate_image(cv::Mat& image) {
-        if (image.empty() || image.channels() != 1) {
+        if (image.empty()) {
             return false;
         }
 

@@ -9,6 +9,7 @@ import os
 import csv
 from typing import Any, Dict, List
 from services.log_service import basic_exc_logger, log_simple
+from domain.class_models import TypeModels
 
 def load_images(image_path: str):
     if not image_path or not os.path.isfile(image_path):
@@ -51,7 +52,7 @@ def load_yaml(file_path: str, mode: str):
     yaml.default_flow_style = False
     yaml.allow_unicode = True
 
-    with open(file_path, mode, encoding='utf-8') as f:
+    with open(file_path, mode, encoding=TypeModels.UTF8.value) as f:
         yaml_raw = yaml.load(f)
         if not yaml_raw:
             raise ValueError(f"YAML INEXISTENTE")
@@ -75,7 +76,7 @@ def save_yaml(results: Dict[str, Dict[str, Any]], output_dir: str, file_name: st
         yaml.default_flow_style = False
         yaml.allow_unicode = True
 
-        with open(output_file, "w", encoding="utf-8") as f:
+        with open(output_file, "w", encoding=TypeModels.UTF8.value) as f:
             yaml.dump(results, f)
 
         return True
@@ -87,7 +88,7 @@ def save_yaml(results: Dict[str, Dict[str, Any]], output_dir: str, file_name: st
 def load_jsoncomment(file_path: str, mode: str):
     if not os.path.isfile(file_path):
         raise FileNotFoundError(f"ARCHIVO DE CONFIGURACIÓN NO ENCONTRADO: {file_path}")
-    with open(file_path, mode, encoding='utf-8') as f:
+    with open(file_path, mode, encoding=TypeModels.UTF8.value) as f:
         commentjson_raw = commentjson.load(f) # type: ignore
         if not commentjson_raw:
             raise ValueError(f"COMMENT JSON INEXISTENTE")
@@ -99,7 +100,7 @@ def save_table(corrected_df: pd.DataFrame, output_dir: str, file_name: str, stac
         header_text = list(corrected_df.columns)
         os.makedirs(output_dir, exist_ok=True)
         output_file = os.path.join(output_dir, file_name)
-        with open(output_file, 'w', newline='', encoding='utf-8') as f:
+        with open(output_file, 'w', newline='', encoding=TypeModels.UTF8.value) as f:
             writer = csv.writer(f)
             writer.writerow(header_text)
             # Escribimos las filas del DataFrame, no solo los nombres de columnas
@@ -128,7 +129,7 @@ def append_table_to_master(corrected_df: pd.DataFrame, output_dir: str, section_
     master_path = os.path.join(output_dir, master_filename)
     write_header = not os.path.exists(master_path) or os.path.getsize(master_path) == 0
 
-    with open(master_path, 'a', newline='', encoding='utf-8') as f:
+    with open(master_path, 'a', newline='', encoding=TypeModels.UTF8.value) as f:
         writer = csv.writer(f)
         writer.writerow([f"# --- {section_title} ---"])
         if write_header:

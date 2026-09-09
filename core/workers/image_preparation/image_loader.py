@@ -25,7 +25,7 @@ class ImageLoader(ImagePrepAbstractWorker):
             image_name, full_image = load_images(input_path)
             full_img = normalice_image(full_image)
             if full_img is None:
-                raise TypeError(f"NO SE PUDO NORMALIZAR LA IMAGEN")
+                raise TypeError("NO SE PUDO NORMALIZAR LA IMAGEN")
             
             metadata: Dict[str, Any] = {
                 "image_name": image_name
