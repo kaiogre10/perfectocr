@@ -1,5 +1,5 @@
 #include "buffer_handler.h"
-#include "../containers/containers.h"
+#include "../payload_container/payload_container.hpp"
 #include <vector>
 #include <cstdint>
 #include <mutex>
@@ -18,7 +18,7 @@ namespace {
         }
         std::cout << std::flush;
         std::cout << "\nSize: " << plain_payload.size() << "\n";
-        push(std::move(plain_payload));
+        payload::push(std::move(plain_payload));
     }
 }
 
@@ -41,6 +41,11 @@ extern "C" {
         buffer_size = len_bytes;
         return buffer_ptr;
     }
+
+    void create_deque() {
+        payload::container_create();
+    }
+
     void commit_buffer(int signal) {
         if (signal > 0) {
             try {
@@ -53,6 +58,17 @@ extern "C" {
             buffer_ptr = nullptr;
             buffer_size = 0;
         }
+    }
+
+    bool release_image(ImageContainer* image_ptr) {
+        if (!image_ptr) {
+            return false;
+        }
+        delete_image(image_ptr);
+        if (image_ptr != nullptr) {
+            return false;
+        }
+        return true;
     }
     // void send_payloads(int trigger) {
     //     if (trigger > 0) {

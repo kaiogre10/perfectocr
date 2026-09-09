@@ -10,8 +10,8 @@ target_include_directories(buffer_handler
 )
 
 # VINCULACIÓN CRÍTICA: Resuelve el LNK2019 inyectando containers.lib en buffer_handler.dll
-target_link_libraries(buffer_handler 
-    PRIVATE 
-        containers
+target_link_libraries(buffer_handler PRIVATE 
+        payload_container
+        image_container
         ${OS_FRONTIER_LIBS}
 )

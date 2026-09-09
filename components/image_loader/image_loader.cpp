@@ -3,7 +3,7 @@
 #include <string>
 #include <opencv2/core.hpp>
 #include "../c_utils/c_utils.hpp"
-#include "../containers/image.hpp"
+#include "../image_container/image.hpp"
 
 extern "C" {
     void load_image(const char* filepath) {

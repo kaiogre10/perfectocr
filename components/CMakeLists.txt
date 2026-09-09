@@ -74,7 +74,7 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Orden secuencial por dependencias
 add_subdirectory(c_utils)
-add_subdirectory(containers)
+add_subdirectory(image_container)
+add_subdirectory(payload_container)
 add_subdirectory(image_loader)
 add_subdirectory(buffer_handler)
-
