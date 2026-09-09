@@ -36,16 +36,17 @@ class AngleCorrector(ImagePrepAbstractWorker):
         
     def process(self, context: Dict[str, Any], manager: DataFormatter) -> bool:
         try:
-            img_obj = manager.get_full_img()
-            full_image = img_obj.full_img if img_obj is not None else None
-            if full_image is None:
-                logger.error(f"No Hay full_img en el Formatter")
-                return False
+            FullImg = manager.get_full_img()
+            
+            # if FullImg is None:
+            #     logger.error("No Hay full_img en el Formatter")
+            #     return False
+            
+            logger.info(f"TYPO: {type(FullImg)}")
+            full_image = np.frombuffer(FullImg, dtype = np.uint8)
             
             logger.debug("Full_img obtenida con éxito")
             
-            full_image = make_contiguous(full_image)
-
             full_img, corrected = self.correct_angle(full_image)
 
             if manager.update_full_img(corrected, full_img):
@@ -71,8 +72,8 @@ class AngleCorrector(ImagePrepAbstractWorker):
         total_time = time.perf_counter()
         try:
             
-            h =  full_img.shape[0]
-            w =  full_img.shape[1]
+            h =  full_img.width
+            w =  full_img.height
             
             center = w // 2, h // 2
             min_len = min(w // 3, self.hough_min_line_length_cap_px)

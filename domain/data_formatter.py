@@ -1,5 +1,6 @@
 # core/domain/data_formatter.py
-from domain.data_models import WorkflowData, StructuredData, Metadata, Polygons, CroppedImage, AllLines, FullImg, Payload
+from domain.data_models import WorkflowData, StructuredData, Metadata, Polygons, CroppedImage, AllLines, Payload
+from utils.compiled_services.image import FullImg
 import numpy as np
 import dataclasses
 import logging
@@ -29,7 +30,7 @@ class DataFormatter:
         self.workflow = None
         self.payload = None
         
-    def create_workflow(self, gray_img: np.ndarray[Any, np.dtype[np.uint8]], metadata: Dict[str, Any]) -> bool:
+    def create_workflow(self, metadata: Dict[str, Any]) -> bool:
         """Crea un nuevo workflow usando dataclasses"""
         try:
             image_name=str(metadata.get("image_name", ""))
@@ -37,9 +38,9 @@ class DataFormatter:
                 image_name=image_name,
                 img_dims = (0 , 0)
             )
-            full_image = FullImg(full_img = gray_img)
+
             self.workflow = WorkflowData(
-                full_img=full_image,
+                full_img=FullImg,
                 metadata=metadata_obj,
                 polygons=None,
                 all_lines=None,
@@ -92,8 +93,8 @@ class DataFormatter:
             logger.error(f"Error en create_polygon_dicts: {e}", exc_info=True)
         return False
             
-    def get_full_img(self) -> Optional[FullImg]:
-        return self.workflow.full_img if self.workflow else None
+    def get_full_img(self) -> FullImg:
+        return FullImg
         
     def delete_cropped_images(self):
         """Libera todas las imágenes recortadas de los polígonos para ahorrar memoria."""

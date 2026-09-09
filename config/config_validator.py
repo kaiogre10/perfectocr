@@ -141,8 +141,13 @@ class ConfigValidator:
             system_paths["buffer_handler"] = buffer_path
         
         if self.compile_cython:
+            
             _comp_utils_path = system_paths["comp_utils_path"]
             system_paths["pxy_file_path"] = os.path.join(self.project_root, *_comp_utils_path)
+            
+            system_paths["header_path"] = os.path.join(self.project_root, "components", "image_container")
+            libs_path = system_paths.get("libs_path", "")
+            system_paths["libs_dir"] = os.path.join(self.project_root, libs_path, "image_container.lib")
         
         output_paths = system_paths["output_paths"]
         temp_path = system_paths["temp_path"]

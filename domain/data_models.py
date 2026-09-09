@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd # type: ignore
 from typing import Dict, List, Optional, Any, Tuple
+from utils.compiled_services.image import FullImg
 from dataclasses import dataclass
     
 @dataclass(slots=True)
@@ -40,9 +41,12 @@ class Metadata:
     image_name: str
     img_dims: Tuple[int, int]
 
-@dataclass(slots=True)
-class FullImg:
-    full_img: Optional[np.ndarray[Any, np.dtype[np.uint8]]]
+# @dataclass
+# class FullImg:
+#     full_img: memoryview
+#     width: int
+#     height: int
+#     channels: int
 
 @dataclass(slots=True)
 class StructuredData:
@@ -51,7 +55,7 @@ class StructuredData:
 
 @dataclass(slots=True)
 class WorkflowData:
-    full_img: Optional[FullImg]
+    full_img: FullImg
     metadata: Optional[Metadata]
     polygons: Optional[Dict[str, Polygons]]
     all_lines: Optional[Dict[str, AllLines]]

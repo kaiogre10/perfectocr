@@ -67,7 +67,7 @@ foreach(OUTPUT_TYPE RUNTIME LIBRARY ARCHIVE)
     endforeach()
 endforeach()
 
-# Remoción de prefijos para carga limpia en ctypes
+# Remoción de prefijos para carga limpia
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_IMPORT_LIBRARY_PREFIX "")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)

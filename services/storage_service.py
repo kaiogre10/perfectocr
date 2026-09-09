@@ -4,23 +4,23 @@ import ctypes
 from domain.class_models import TypeModels
 
 LIB: ctypes.CDLL
-# LOAD: ctypes.CDLL
+LOAD: ctypes.CDLL
 
 logger = logging.getLogger(__name__)
 
 def storage_config(config: Dict[str, List[str]]) -> None:
-    global LIB # type: ignore
-    # loader_bin_path = config.get("loader", "")
+    global LIB, LOAD # type: ignore
+    loader_bin_path = config.get("loader", "")
     storage_bin_path = config.get("buffer_handler", "")
-    # try:
-    #     LOAD = ctypes.CDLL(loader_bin_path)
-    #     if not LOAD:
-    #         raise OSError("ERROR CARGANDO CONTENEDOR")
-    #     LOAD.load_image.argtypes = [ctypes.c_char_p]
-    #     LOAD.load_image.restype = None
-    # except BaseExceptionGroup as e:
-    #     logger.error(f"NO SE PUDO PUDO INICIAR EL CONTENDOR EN MEMORIA: {e}", exc_info=True)
-    #     raise
+    try:
+        LOAD = ctypes.CDLL(loader_bin_path) # type: ignore
+        if not LOAD:
+            raise OSError("ERROR CARGANDO CONTENEDOR")
+        LOAD.load_image.argtypes = [ctypes.c_char_p]
+        LOAD.load_image.restype = None
+    except BaseExceptionGroup as e:
+        logger.error(f"NO SE PUDO PUDO INICIAR EL CONTENDOR EN MEMORIA: {e}", exc_info=True)
+        raise
 
     try:
         LIB = ctypes.CDLL(storage_bin_path) # type: ignore
@@ -38,8 +38,8 @@ def storage_config(config: Dict[str, List[str]]) -> None:
         logger.warning(f"ERROR CARGANDO BUFFER HANDLER: {e}", exc_info=True)
         raise
 
-# def load_image(path: str):
-#     LOAD.load_image(path.encode(TypeModels.UTF8.value))
+def load_image(path: str):
+    LOAD.load_image(path.encode(TypeModels.UTF8.value))
 
 def storage_data(texts: List[str]) -> Optional[List[int]]:
     buffers: List[int] = []
