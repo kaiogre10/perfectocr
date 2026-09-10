@@ -10,7 +10,7 @@ namespace files_handler {
         image = cv::imread(filepath, cv::IMREAD_UNCHANGED);
     }
 
-    bool save_image(const char* output_path, cv::Mat& outimage) {
+    bool save_image(const char* output_path, const cv::Mat& outimage) {
         return cv::imwrite(output_path, outimage);
     }
 }

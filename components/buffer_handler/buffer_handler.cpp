@@ -5,8 +5,10 @@
 #include <mutex>
 #include <iostream>
 
-uint8_t* buffer_ptr = nullptr;
-size_t buffer_size = 0;
+namespace {
+    uint8_t* buffer_ptr = nullptr;
+    size_t buffer_size = 0;
+}
 
 namespace {
     void storage_batch_flat(uint8_t* buffer_ptr, size_t buffer_size) {
@@ -36,7 +38,7 @@ namespace {
 // }
 
 extern "C" {
-    uint8_t* reserve_buffer(size_t len_bytes) {
+    uint8_t* reserve_buffer(const size_t len_bytes) {
         buffer_ptr = new uint8_t[len_bytes];
         buffer_size = len_bytes;
         return buffer_ptr;
@@ -46,18 +48,16 @@ extern "C" {
         payload::container_create();
     }
 
-    void commit_buffer(int signal) {
-        if (signal > 0) {
-            try {
-                storage_batch_flat(buffer_ptr, buffer_size);
-                delete[] buffer_ptr;
-            }
-            catch (...) {
-                delete[] buffer_ptr;
-            }
-            buffer_ptr = nullptr;
-            buffer_size = 0;
+    void commit_buffer() {
+        try {
+            storage_batch_flat(buffer_ptr, buffer_size);
+            delete[] buffer_ptr;
         }
+        catch (...) {
+            delete[] buffer_ptr;
+        }
+        buffer_ptr = nullptr;
+        buffer_size = 0;
     }
 
     bool release_image(ImageContainer* image_ptr) {

@@ -8,7 +8,7 @@ LOAD: ctypes.CDLL
 
 logger = logging.getLogger(__name__)
 
-def storage_config(config: Dict[str, List[str]]) -> None:
+def storage_config(config: Dict[str, List[str]]):
     global LIB, LOAD # type: ignore
     loader_bin_path = config.get("loader", "")
     storage_bin_path = config.get("buffer_handler", "")
@@ -32,7 +32,7 @@ def storage_config(config: Dict[str, List[str]]) -> None:
         
         LIB.reserve_buffer.argtypes = [ctypes.c_size_t]
         LIB.reserve_buffer.restype = ctypes.c_void_p
-        LIB.commit_buffer.argtypes = [ctypes.c_int]
+        LIB.commit_buffer.argtypes = []
         LIB.commit_buffer.restype = None
     except FileNotFoundError as e:
         logger.warning(f"ERROR CARGANDO BUFFER HANDLER: {e}", exc_info=True)
@@ -58,7 +58,7 @@ def storage_data(texts: List[str]) -> Optional[List[int]]:
             raise ctypes.ArgumentError("ERROR DE PUNTEROS")
             
         ctypes.memmove(ptr, raw_payload.decode(TypeModels.ASCII.value).encode(TypeModels.UTF16_CSHARP.value), len_bytes) # Guardar bytes typados
-        LIB.commit_buffer(1) # Avisar que ya están guardados
+        LIB.commit_buffer() # Avisar que ya están guardados
         buffers.append(len_bytes)
 
     return buffers
