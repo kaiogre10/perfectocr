@@ -5,14 +5,14 @@ from domain.data_formatter import DataFormatter
 from utils.image_utils import normalice_image
 from utils.file_handler import load_images
 from services.output_service import save_croped_image
-# from services.storage_service import load_image
+from utils.compiled_services.image import load
 
 logger = logging.getLogger(__name__)
 
 class ImageLoader(ImagePrepAbstractWorker):
     def __init__(self, config: Dict[str, Any], project_root: str):
         super().__init__(config, project_root)
-        self.project_root = project_root
+        # self.project_root = project_root
         self.output = config.get("full_img")
 
     def process(self, context: Dict[str, Any], manager: DataFormatter) -> bool:
@@ -20,7 +20,7 @@ class ImageLoader(ImagePrepAbstractWorker):
         try:
             input_path = context.get("image_data", "")
             logger.info(f"IMAGEN: '{input_path}'")
-            
+            ptr = load(input_path)
             del context["image_data"]
             
             # load_image(input_path)

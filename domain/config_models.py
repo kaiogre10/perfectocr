@@ -8,12 +8,11 @@ class ConfigWithNumpy(BaseModel):
 class SystemPaths(ConfigWithNumpy):
     output_paths: List[str]
     libs_path: str
-    loader: str
-    buffer_handler: str
+    components: List[str]
     temp_path: List[str]
     compile_command: List[str]
-    comp_utils_name: str
-    comp_utils_path: List[str]
+    comp_funcs_name: str
+    comp_funcs_file: List[str]
     
 class SystemParams(ConfigWithNumpy):
     system_paths: SystemPaths

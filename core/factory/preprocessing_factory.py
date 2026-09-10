@@ -1,7 +1,7 @@
 # core/workers/preprocessing/preprocessing_factory.py
 from typing import Dict, Callable, Any
 from core.contracts.abstract_worker import  PreprocessingAbstractWorker
-from core.contracts.abstract_factory import AbstractBaseFactory
+from core.factory.abstract_factory import AbstractBaseFactory
 from core.workers.preprocessing.sp import DoctorSaltPepper
 from core.workers.preprocessing.moire import MoireDenoiser
 from core.workers.preprocessing.gauss import GaussianDenoiser

@@ -5,24 +5,56 @@
     "distutils": {
         "depends": [
             "/home/kaiogre05/PerfectOCR/components/image_container/image.hpp",
-            "/home/kaiogre05/PerfectOCR/components/image_loader/image_loader.hpp"
+            "/home/kaiogre05/PerfectOCR/components/image_loader/image_loader.hpp",
+            "/home/kaiogre05/miniforge3/envs/intel/lib/python3.12/site-packages/numpy/core/include/numpy/arrayobject.h",
+            "/home/kaiogre05/miniforge3/envs/intel/lib/python3.12/site-packages/numpy/core/include/numpy/arrayscalars.h",
+            "/home/kaiogre05/miniforge3/envs/intel/lib/python3.12/site-packages/numpy/core/include/numpy/ndarrayobject.h",
+            "/home/kaiogre05/miniforge3/envs/intel/lib/python3.12/site-packages/numpy/core/include/numpy/ndarraytypes.h",
+            "/home/kaiogre05/miniforge3/envs/intel/lib/python3.12/site-packages/numpy/core/include/numpy/ufuncobject.h"
         ],
         "extra_compile_args": [
-            "-std=c++20"
+            "-std=c++20",
+            "-mavx2",
+            "-mfma",
+            "--gcc-install-dir=/home/kaiogre05/miniforge3/envs/intel/lib/gcc/x86_64-conda-linux-gnu/15.2.0"
+        ],
+        "extra_link_args": [
+            "-B/home/kaiogre05/miniforge3/envs/intel/lib/gcc/x86_64-conda-linux-gnu/15.2.0",
+            "-L/home/kaiogre05/miniforge3/envs/intel/lib/gcc/x86_64-conda-linux-gnu/15.2.0",
+            "-L/home/kaiogre05/miniforge3/envs/intel/lib",
+            "-L/home/kaiogre05/PerfectOCR/components/opencv_dep/install/lib",
+            "-Wl,-rpath,/home/kaiogre05/miniforge3/envs/intel/lib",
+            "-Wl,-rpath,/home/kaiogre05/PerfectOCR/components/opencv_dep/install/lib"
         ],
         "include_dirs": [
+            "/home/kaiogre05/PerfectOCR/components/image_loader",
             "/home/kaiogre05/PerfectOCR/components/image_container",
-            "/home/kaiogre05/PerfectOCR/components/image_loader"
+            "/home/kaiogre05/miniforge3/envs/intel/lib/python3.12/site-packages/numpy/core/include",
+            "/home/kaiogre05/PerfectOCR/components/opencv_dep/install/include/opencv4",
+            "/home/kaiogre05/miniforge3/envs/intel/include"
         ],
         "language": "c++",
         "libraries": [
+            "image_loader",
             "image_container",
-            "image_loader"
+            "file_handler",
+            "payload_container",
+            "c_utils",
+            "opencv_core",
+            "opencv_imgproc",
+            "opencv_imgcodecs",
+            "tbb"
         ],
         "library_dirs": [
-            "/home/kaiogre05/PerfectOCR/bin"
+            "/home/kaiogre05/PerfectOCR/bin",
+            "/home/kaiogre05/PerfectOCR/components/opencv_dep/install/lib",
+            "/home/kaiogre05/miniforge3/envs/intel/lib"
         ],
         "name": "utils.compiled_services.image",
+        "runtime_library_dirs": [
+            "/home/kaiogre05/miniforge3/envs/intel/lib",
+            "/home/kaiogre05/PerfectOCR/components/opencv_dep/install/lib"
+        ],
         "sources": [
             "/home/kaiogre05/PerfectOCR/utils/compiled_services/image.pyx"
         ]
@@ -1295,6 +1327,24 @@ static int __Pyx_init_tpflags_variables(void) {
 #include "stdexcept"
 #include "typeinfo"
 #include "image.hpp"
+
+    #ifndef DESTROY_IMAGE_DEFINED
+    #define DESTROY_IMAGE_DEFINED
+    #include "image.hpp"
+    inline void destroy_image(Image* img) noexcept {
+        delete img;
+    }
+    #endif
+    
+
+    #ifndef DESTROY_IMAGE_DEFINED
+    #define DESTROY_IMAGE_DEFINED
+    #include "image.hpp"
+    inline void destroy_image(Image* img) noexcept {
+        delete img;
+    }
+    #endif
+    
 #include "image_loader.hpp"
 #include <string.h>
 #include <stdio.h>
@@ -3359,6 +3409,48 @@ static void __pyx_insert_code_object(int code_line, __Pyx_CachedCodeObjectType* 
 static void __Pyx_AddTraceback(const char *funcname, int c_line,
                                int py_line, const char *filename);
 
+/* CppExceptionConversion.proto */
+#ifndef __Pyx_CppExn2PyErr
+#include <new>
+#include <typeinfo>
+#include <stdexcept>
+#include <ios>
+static void __Pyx_CppExn2PyErr() {
+  try {
+    if (PyErr_Occurred())
+      ; // let the latest Python exn pass through and ignore the current one
+    else
+      throw;
+  } catch (const std::bad_alloc& exn) {
+    PyErr_SetString(PyExc_MemoryError, exn.what());
+  } catch (const std::bad_cast& exn) {
+    PyErr_SetString(PyExc_TypeError, exn.what());
+  } catch (const std::bad_typeid& exn) {
+    PyErr_SetString(PyExc_TypeError, exn.what());
+  } catch (const std::domain_error& exn) {
+    PyErr_SetString(PyExc_ValueError, exn.what());
+  } catch (const std::invalid_argument& exn) {
+    PyErr_SetString(PyExc_ValueError, exn.what());
+  } catch (const std::ios_base::failure& exn) {
+    PyErr_SetString(PyExc_IOError, exn.what());
+  } catch (const std::out_of_range& exn) {
+    PyErr_SetString(PyExc_IndexError, exn.what());
+  } catch (const std::overflow_error& exn) {
+    PyErr_SetString(PyExc_OverflowError, exn.what());
+  } catch (const std::range_error& exn) {
+    PyErr_SetString(PyExc_ArithmeticError, exn.what());
+  } catch (const std::underflow_error& exn) {
+    PyErr_SetString(PyExc_ArithmeticError, exn.what());
+  } catch (const std::exception& exn) {
+    PyErr_SetString(PyExc_RuntimeError, exn.what());
+  }
+  catch (...)
+  {
+    PyErr_SetString(PyExc_RuntimeError, "Unknown exception");
+  }
+}
+#endif
+
 /* MemviewDtypeToObject.proto */
 static CYTHON_INLINE PyObject *__pyx_memview_get_nn___pyx_t_5numpy_uint8_t(const char *itemp);
 static CYTHON_INLINE int __pyx_memview_set_nn___pyx_t_5numpy_uint8_t(char *itemp, PyObject *obj);
@@ -4131,7 +4223,7 @@ static __pyx_mstatetype * const __pyx_mstate_global = &__pyx_mstate_global_stati
 #define __pyx_kp_b_T __pyx_string_tab[117]
 #define __pyx_kp_b__5 __pyx_string_tab[118]
 #define __pyx_kp_b__8 __pyx_string_tab[119]
-#define __pyx_kp_b_iso88591_ha __pyx_string_tab[120]
+#define __pyx_kp_b_iso88591_y_1_ha __pyx_string_tab[120]
 #define __pyx_kp_b_iso88591_ha_G1_F_E_2XQm4t1 __pyx_string_tab[121]
 #define __pyx_kp_b_iso88591_j_t3a_l_5Qa_81 __pyx_string_tab[122]
 #define __pyx_int_0 __pyx_number_tab[0]
@@ -20334,11 +20426,12 @@ static PyObject *__pyx_pf_5utils_17compiled_services_5image_load(CYTHON_UNUSED P
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
   char const *__pyx_t_2;
-  int __pyx_t_3;
-  PyObject *__pyx_t_4 = NULL;
+  Image *__pyx_t_3;
+  int __pyx_t_4;
   PyObject *__pyx_t_5 = NULL;
   PyObject *__pyx_t_6 = NULL;
-  size_t __pyx_t_7;
+  PyObject *__pyx_t_7 = NULL;
+  size_t __pyx_t_8;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -20358,9 +20451,15 @@ static PyObject *__pyx_pf_5utils_17compiled_services_5image_load(CYTHON_UNUSED P
   __pyx_t_1 = PyUnicode_AsUTF8String(__pyx_v_filepath); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 9, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_t_2 = __Pyx_PyBytes_AsString(__pyx_t_1); if (unlikely((!__pyx_t_2) && PyErr_Occurred())) __PYX_ERR(0, 9, __pyx_L1_error)
-  __pyx_v_img = load_image(__pyx_t_2);
+  try {
+    __pyx_t_3 = load_image(__pyx_t_2);
+  } catch(...) {
+    __Pyx_CppExn2PyErr();
+    __PYX_ERR(0, 9, __pyx_L1_error)
+  }
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
 
+  __pyx_v_img = __pyx_t_3;
 
   /* "utils/compiled_services/image.pyx":10
  * def load(str filepath):
@@ -20369,9 +20468,9 @@ static PyObject *__pyx_pf_5utils_17compiled_services_5image_load(CYTHON_UNUSED P
  *         raise RuntimeError(f"Fallo al cargar imagen: {filepath}")
  *     return <size_t>img
 */
-  __pyx_t_3 = (__pyx_v_img == NULL);
+  __pyx_t_4 = (__pyx_v_img == NULL);
 
-  if (unlikely(__pyx_t_3)) {
+  if (unlikely(__pyx_t_4)) {
 
 
     /* "utils/compiled_services/image.pyx":11
@@ -20381,18 +20480,18 @@ static PyObject *__pyx_pf_5utils_17compiled_services_5image_load(CYTHON_UNUSED P
  *     return <size_t>img
  * 
 */
-    __pyx_t_4 = NULL;
-    __pyx_t_5 = __Pyx_PyUnicode_Unicode(__pyx_v_filepath); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 11, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_6 = __Pyx_PyUnicode_Concat(__pyx_mstate_global->__pyx_kp_u_Fallo_al_cargar_imagen, __pyx_t_5); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 11, __pyx_L1_error)
+    __pyx_t_5 = NULL;
+    __pyx_t_6 = __Pyx_PyUnicode_Unicode(__pyx_v_filepath); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 11, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_7 = 1;
+    __pyx_t_7 = __Pyx_PyUnicode_Concat(__pyx_mstate_global->__pyx_kp_u_Fallo_al_cargar_imagen, __pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 11, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_7);
+    __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+    __pyx_t_8 = 1;
     {
-      PyObject *__pyx_callargs[2] = {__pyx_t_4, __pyx_t_6};
-      __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(((PyTypeObject*)PyExc_RuntimeError)), __pyx_callargs+__pyx_t_7, (2-__pyx_t_7) | (__pyx_t_7*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
-      __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+      PyObject *__pyx_callargs[2] = {__pyx_t_5, __pyx_t_7};
+      __pyx_t_1 = __Pyx_PyObject_FastCall((PyObject*)(((PyTypeObject*)PyExc_RuntimeError)), __pyx_callargs+__pyx_t_8, (2-__pyx_t_8) | (__pyx_t_8*__Pyx_PY_VECTORCALL_ARGUMENTS_OFFSET));
+      __Pyx_XDECREF(__pyx_t_5); __pyx_t_5 = 0;
+      __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 11, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
     }
@@ -20440,9 +20539,9 @@ static PyObject *__pyx_pf_5utils_17compiled_services_5image_load(CYTHON_UNUSED P
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_4);
   __Pyx_XDECREF(__pyx_t_5);
   __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_XDECREF(__pyx_t_7);
   __Pyx_AddTraceback("utils.compiled_services.image.load", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
@@ -20696,8 +20795,8 @@ static PyObject *__pyx_pf_5utils_17compiled_services_5image_2get_array(CYTHON_UN
  *     return np.asarray(<np.uint8_t[:h, :w]> data)
  * 
  * def release(size_t ptr_addr):             # <<<<<<<<<<<<<<
- *     cdef Image* img = <Image*>ptr_addr
- *     del img
+ *     if ptr_addr == 0:
+ *         return
 */
 
 /* Python wrapper */
@@ -20790,33 +20889,73 @@ static PyObject *__pyx_pf_5utils_17compiled_services_5image_4release(CYTHON_UNUS
   Image *__pyx_v_img;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
+  int __pyx_t_1;
   __Pyx_RefNannySetupContext("release", 0);
 
   /* "utils/compiled_services/image.pyx":22
  * 
  * def release(size_t ptr_addr):
+ *     if ptr_addr == 0:             # <<<<<<<<<<<<<<
+ *         return
+ *     cdef Image* img = <Image*>ptr_addr
+*/
+  __pyx_t_1 = (__pyx_v_ptr_addr == 0);
+
+  if (__pyx_t_1) {
+
+
+    /* "utils/compiled_services/image.pyx":23
+ * def release(size_t ptr_addr):
+ *     if ptr_addr == 0:
+ *         return             # <<<<<<<<<<<<<<
+ *     cdef Image* img = <Image*>ptr_addr
+ *     destroy_image(img)
+*/
+    {
+      PyObject *__pyx_temp;
+      {
+        __pyx_temp = __pyx_r;
+        __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+      }
+      __Pyx_XDECREF(__pyx_temp);
+    }
+    goto __pyx_L0;
+
+    /* "utils/compiled_services/image.pyx":22
+ * 
+ * def release(size_t ptr_addr):
+ *     if ptr_addr == 0:             # <<<<<<<<<<<<<<
+ *         return
+ *     cdef Image* img = <Image*>ptr_addr
+*/
+  }
+
+  /* "utils/compiled_services/image.pyx":24
+ *     if ptr_addr == 0:
+ *         return
  *     cdef Image* img = <Image*>ptr_addr             # <<<<<<<<<<<<<<
- *     del img
+ *     destroy_image(img)
 */
   __pyx_v_img = ((Image *)__pyx_v_ptr_addr);
 
-  /* "utils/compiled_services/image.pyx":23
- * def release(size_t ptr_addr):
+  /* "utils/compiled_services/image.pyx":25
+ *         return
  *     cdef Image* img = <Image*>ptr_addr
- *     del img             # <<<<<<<<<<<<<<
+ *     destroy_image(img)             # <<<<<<<<<<<<<<
 */
-  delete __pyx_v_img;
+  destroy_image(((Image *)__pyx_v_img));
 
   /* "utils/compiled_services/image.pyx":21
  *     return np.asarray(<np.uint8_t[:h, :w]> data)
  * 
  * def release(size_t ptr_addr):             # <<<<<<<<<<<<<<
- *     cdef Image* img = <Image*>ptr_addr
- *     del img
+ *     if ptr_addr == 0:
+ *         return
 */
 
   /* function exit code */
   __pyx_r = Py_None; __Pyx_INCREF(Py_None);
+  __pyx_L0:;
 
   __Pyx_XGIVEREF(__pyx_r);
   __Pyx_RefNannyFinishContext();
@@ -23169,8 +23308,8 @@ __Pyx_RefNannySetupContext("PyInit_image", 0);
  *     return np.asarray(<np.uint8_t[:h, :w]> data)
  * 
  * def release(size_t ptr_addr):             # <<<<<<<<<<<<<<
- *     cdef Image* img = <Image*>ptr_addr
- *     del img
+ *     if ptr_addr == 0:
+ *         return
 */
   __pyx_t_4 = __Pyx_CyFunction_New(&__pyx_mdef_5utils_17compiled_services_5image_5release, 0, __pyx_mstate_global->__pyx_n_u_release, NULL, __pyx_mstate_global->__pyx_n_u_utils_compiled_services_image, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[2])); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 21, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
@@ -23355,30 +23494,30 @@ static int __Pyx_InitConstants(__pyx_mstatetype *__pyx_mstate) {
   CYTHON_UNUSED_VAR(__pyx_mstate);
   {
     const struct { const unsigned int length: 8; } str_length_index[] = {{6},{8},{1},{1},{1},{1},{2},{15},{23},{25},{32},{20},{22},{1},{1},{37},{24},{45},{22},{4},{179},{8},{15},{7},{6},{2},{9},{50},{38},{33},{30},{37},{33},{5},{8},{8},{15},{20},{12},{9},{17},{8},{8},{12},{10},{8},{10},{8},{7},{14},{11},{10},{19},{14},{12},{10},{17},{13},{12},{12},{19},{8},{13},{3},{15},{7},{18},{4},{1},{18},{5},{4},{15},{6},{9},{5},{8},{5},{6},{7},{9},{1},{2},{3},{5},{5},{8},{4},{4},{7},{4},{4},{4},{2},{5},{3},{4},{3},{8},{8},{7},{10},{5},{4},{5},{4},{4},{6},{6},{6},{29},{6},{1},{1}};
-    const struct { const unsigned int length: 6; } bytes_length_index[] = {{0},{1},{1},{2},{1},{1},{14},{53},{47}};
+    const struct { const unsigned int length: 6; } bytes_length_index[] = {{0},{1},{1},{2},{1},{1},{28},{53},{47}};
     #ifndef CYTHON_COMPRESS_STRINGS
       #define CYTHON_COMPRESS_STRINGS 90
     #endif
-    #if (CYTHON_COMPRESS_STRINGS) == 1 /* compression: zlib (878 bytes) */
-static const char cstring[] = "x\332}T\315k\0347\024\307`h P\010\2016\241\027\345\264\t\330\2238u!\230\220R\034\247\370\020\307iB\351)\342\215\364fV\266FR\364\261\231I)\344\270\307=\356q\2179\372O\351q\377\234>\315\354\256\267M\311\300\314<I\357\363\367~O\014\"{\3242[^\240\210\317\356?\330+\216\330\323\227\330X\337\375\256\360\003\263\025{*\254\211\252N6\005\006F2\251|\326\375\357\2662\353\203\020\275\222(\267\224\231\365_=\377\367\336F\363\331\317\307`\214\215\014BP\265a\3212\217 \367\255\321\035k\372$\047\224\344\013\320\3322\320L\200\257\201\"5P\2439b\247f\002ZI\326X\211{\014[G>)\304H\214r>\243\312\372\350\301\214\366XM!\326\312a\014\016)\005\006\255\n\354\314\032<\263\021Y\034\023P\307]\034[\303h_\242V%z\210H\231\344\334\311\263\317J\206\235\237\234\357\037>9\354+\361\230a\r,\244Rh*\002C\006\264LJG\212\020;\207\241`\247\025\353lb\006)7\252\320\221\336\266A\034\243a\001c\026\330\250\307\003\242\262\206\223\2712\365h\005\241\232`\266&,\002\026 %\047=\024V\353|fM(\240\024R\005(5\242\311\337Z\2500H\322X*\250\202\244#\343\334\243L\0029g2\365\036\2155\373T\340D\021\300\234\013eT\344\334\244\306u\205\260\036\213\206\314\024x\017\035\253@\351\241\010\3258BwK+5\020\307_(\244>~^\347\026\n\202\223\r\236$D(\376\347t\350N\206v L(RT:<\024\266q\3315\017\350\047J`x\330\223\240p]\373\313\233\343\323\323\023\255\225\013*\274\301\367\t\215\300\314\355\342\232\346\234\237w-\275\317\251\217\374\014\333\370\033V\234\257\260&,\250\356\334\215k\241\306\250\"6yCf\033z\252dD\376\323QX[\rUf\251\001e\372\277\225I\367g\006\232\341\237\303sN\231r1Fq\031R3\254V^\262\230\2312H\3118%.\311\303\211Y\353Mb\206)\373x\237@\257\335\256\333\270\221DO\336\255\rl\363\202\230\265I%l\245\276\221\257\355\"\206\\\213\n\234Zj\tx\203D\252uox\231\252\212F\"\364\035\204\320\031\241l\261\321\014%\004\024B\223\310\t\n\232<\201%\210Ka\223\211\271\335\262/\222\234\017w\021u\211\306\026\251\312~\314\320{\353+j\261#\036U\032\352@\343K\234Z\r1\201\316\373\270c%US\323\r\202mnP\030>\037\361\302*\243-H\2725\362\225\221\257\204\\5\3354\215q=O)\254\243|""\234u.zN\023\344=\326*\320\\{\324H\311\023\"\253)\351Y\230\275\022B\236`B\027\242\245\327\047A\224\316^\222\243\222\260\347f\361\0057\213\236\233t\335$\014\037\332\243Wo\377|\367\327\247\235\345\356w\263\361\034\226\2737\246;[\253[\263\333\263_\347\007\203\360b~o\271{w~{~\262\270\265\334\2759}<\375c\366z\326,\016\027\361\363\301`t\261\330Y\334\371\374\375\325\316\025i|\363)N\177\234\302\362\306\267S=\277\367\367\017?]\275\276\202l\370dv\360\017W\023O\244";
-    PyObject *data = __Pyx_DecompressString(cstring, 878, 1);
+    #if (CYTHON_COMPRESS_STRINGS) == 1 /* compression: zlib (891 bytes) */
+static const char cstring[] = "x\332}T\315o\033E\024W\204%\212\220\220\242J\005\304er2\225\222-\201 UQU\204B\212rhH)B\234\030=\317\274]O2;\263\235\017\327\013B\352\321G\037}\364\261\307\374)\034\375\347\364\275]\3331\024\261\322\356\276\231y\237\277\367{# \211\257\246\302\217\256Q\245\247_><,N\305\223\347X\373\320\376j\360\265\360\245x\242\274K\246\312>G\001N\013m\002\353\376{\333\270\315AL\301h\324;\312\302\207\377=\377\347\336V\363\351wg\340\234O\002b4\225\023\311\213\200\240\217\274\263\255\250\273$\047\224\3443\260\326\013\260BA\250\200\"\325P\241;\025\027n\002\326hQ{\215\207\002\247\r\371\244\020C5\344|\206\245\017)\200\033\036\212\212Bl\224\343\030\032\244\024\004LM\024\227\336\341\245O(\322\230\200:k\323\330;A\373\032\255\031a\200\204\224\t\347N\236\003+9qu~ut\362\370\244\253$ \303\032E\314#e\251\010\214\014\350(\033\233(Bj\033\214\205\270(E\353\263pH\271Q\205\r\351\355\032\2441:\0211\261 \206\035\036\220\214w\222\314\215\253\206k\010\315\004\331\232\260\210X\200\326\222\364Pyk\371\314\273X\300Hi\023ad\021\035\177+eb/i\347\251\240\022\262MB\312\200:+\224R\350\334yt\336\035Q\201\023C\000K\251\2143IJ\227\353\246-\224\017X\324df \004hE\t\306\366E\230\272!tw\264r\ri\374\236B\356\342\363\232[\250\010N\321{\322\220\240\370\217\323\276;\014mO\230X\344dl|\244|\335\260k\0311L\214\302\370\250#A\321\264\323\357_\236]\\\234[k\232h\342K|\225\321)dn\027w4\227\362\252\235\322\373\003\365Q^\3424\375\214\245\224k\254\t\013\252\233\273q\047T\230L\302\23274\333\320Sf\247\370OGqc\325W\311R\r\306u\177\257\263\355\316\034\324\375\237\303KI\231J5Fu\023s\335\257\326^Xd\246\364Rv\215Q7\344\341\334m\364&\211ab\037\2572\330\215\333M\033\267\222\352\310\273\263\201S^\020\263\266\251\304\235\324\267\362\235]\302\310\265\230(\251\245\236\200wH\244\332\364F\216rY\322H\304\256\203\020[\247\214/\266\232q\004\021\225\262$J\202\202&O\341\010\324\215\362\331%n\267\356\212$\347\375]D]\242\261E\252\262\0333\014\301\207\222Z\334\020\217J\013U\244\361%N\255\207\230@\227]\334\261\321\246\256\350\006\301)7(\366\237?\360\332\033g=h""\2725\370\312\340+\201\253\246\233\246vM\307S\n\333P>\215o\232\024$MP\010X\231Hs\035\320\"%O\210\254\247\244c!{%\204\002\301\204ML\236\336\220\025Q\232\275\344\206J\302\216\233\305{\334,:n\322u\2231\276\236\236\376\364\313\237\277\377\365fo5\370\360M;\377`~\274\272\367\321j\360`>^\300j\260?\337\237\037\360\331v}\177\376\343\342\270\027\236-\016V\203\317\027\367\027\347\313\375\325\340\343\331\327\263\337\346/\346\365\362d\231\336\036\367F\327\313\275\345go?\275\335\273\335g\377i\366\315\014V\367>\231\331\305\301\337_|{\373\342\026\330\360\361\374\370\035\263PT\217";
+    PyObject *data = __Pyx_DecompressString(cstring, 891, 1);
     #define __Pyx_DecompressString_LZSS_UNUSED
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #elif (CYTHON_COMPRESS_STRINGS) > 0 && (CYTHON_COMPRESS_STRINGS) <= 90 /* compression: lzss (1180 bytes) */
-static const char cstring[] = "\377 at 0x o\377bject>()\377,.: <Mem\377oryView \377of <cont\377iguous a?nd dir(\001\007\r\373in\021\005strid{ed\"\010 or \004\031\363><(\tA\006>?Ca\377nnot ass\377ign to r\377ead-only\353 m\240\002v\242\000Fal\377lo al ca\367rgag\000mage\377n: Inval\377id mode,\317 exp\340\000\224\000\047c\375\047\214\001\047fortr?an\047, g`\000%\005\337shape\252\000 a\377xis None\177Note th\246 \177Cython \025\000\377delibera\363te\207\000\354\001cter\376!\001n PEP-4\33384\246\"re\323!s \337subcl\302\000es~\315!builti\314\000\377ypes. If\177 you ne\260 \362\337\000p\352\000%\tthen\357 set\200\000e \047\376\213\"ation_t\277yping\047\211Di\355v\242\000o \211 se.\357add_\265 eco\363ll\325@+\000s.ab\377cdisable{en\002\001gcis\004\003\377dno defa\377ult __re\377duce__ d\275uM\002non-\316@v\375i\336 __cini\377t__numpy\177.core.m4\000\377iarray fwail\277\003imp\333 \276\033\010umath\020\016u\250\205\002\324A\277Ac\314  D\003d\017ata.\013\020\230C\202\204\001\337c\377s.utils/\357compx\001_se\377rvices/i\376\201a.pyxASC\377IIEllips\377isSequen\353ce\330\204\001.\335\204\007__P\373yx\001\000Dict_\377NextRef_a_\345$\211 \365\000\273A__\001\005\177getitem\r\001yd0\001\027\000func\035\001\206\030\000st\226`)\001\201#3\001m\367ain\003\002odulnM\002nam\002\003ewT\001\376\247\000_checks\001uT\000\n\001?\004\025\001\350@\217@\037\001\277unpick?\000E\315n \005vt\321A\230\001qu#alO\005\277E\310Fc\270\204\002\277\001&\333Dex\314\001\327`_\203\005\343`\270\262\006\003\006.\007tes\370@_\327is_\366@o\366 ne\374\322`\262E_buffe\367ras\207basyn\357cio.!\006sba\377seccline\375_\210 traceb\377ackcount\302\353Ad\340\002Z\000\206\210\003\243@od\363ee\346`\342\205\002erro\353rf\334`p\305`fla\037gsfor\321`\276\206\004\215@\375_\377bhidimg_index\235As\000\002\377izejoinl?oadmem\257\207\001\217\207\001\332\375!n+\000np\311\204\002ob\373jp\215\000poppt\377r_addrre\357gistw\000eleN\272\000set\237\205\004\237\207\002sS\000\366\346@rt \000psto\236\001\000ruct\236@\323\000u_pdate\227\204\002.\213\204\016\375.\227\204""\002values\377wx:OT{^}\377\200\001\330\004\026\220h\230\277a\330\004\010\210\001\003\010\021\377\220\023\220G\2301\330\004\376\005\001F\230!\330\004\031\230\377\023\230E\240\021\330\004\013\377\2102\210X\220Q\220m\277\2404\240t\2501=\003j\377\240\001\240\030\250\027\260\001\375\260\037\000\007\200t\2103\210\377a\330\010\016\210l\230!\277\320\0335\260Q\260_\000\013\017\2108\2201";
-    PyObject *data = __Pyx_DecompressString_LZSS(cstring, 1180, 1530);
+    #elif (CYTHON_COMPRESS_STRINGS) > 0 && (CYTHON_COMPRESS_STRINGS) <= 90 /* compression: lzss (1196 bytes) */
+static const char cstring[] = "\377 at 0x o\377bject>()\377,.: <Mem\377oryView \377of <cont\377iguous a?nd dir(\001\007\r\373in\021\005strid{ed\"\010 or \004\031\363><(\tA\006>?Ca\377nnot ass\377ign to r\377ead-only\353 m\240\002v\242\000Fal\377lo al ca\367rgag\000mage\377n: Inval\377id mode,\317 exp\340\000\224\000\047c\375\047\214\001\047fortr?an\047, g`\000%\005\337shape\252\000 a\377xis None\177Note th\246 \177Cython \025\000\377delibera\363te\207\000\354\001cter\376!\001n PEP-4\33384\246\"re\323!s \337subcl\302\000es~\315!builti\314\000\377ypes. If\177 you ne\260 \362\337\000p\352\000%\tthen\357 set\200\000e \047\376\213\"ation_t\277yping\047\211Di\355v\242\000o \211 se.\357add_\265 eco\363ll\325@+\000s.ab\377cdisable{en\002\001gcis\004\003\377dno defa\377ult __re\377duce__ d\275uM\002non-\316@v\375i\336 __cini\377t__numpy\177.core.m4\000\377iarray fwail\277\003imp\333 \276\033\010umath\020\016u\250\205\002\324A\277Ac\314  D\003d\017ata.\013\020\230C\202\204\001\337c\377s.utils/\357compx\001_se\377rvices/i\376\201a.pyxASC\377IIEllips\377isSequen\353ce\330\204\001.\335\204\007__P\373yx\001\000Dict_\377NextRef_a_\345$\211 \365\000\273A__\001\005\177getitem\r\001yd0\001\027\000func\035\001\206\030\000st\226`)\001\201#3\001m\367ain\003\002odulnM\002nam\002\003ewT\001\376\247\000_checks\001uT\000\n\001?\004\025\001\350@\217@\037\001\277unpick?\000E\315n \005vt\321A\230\001qu#alO\005\277E\310Fc\270\204\002\277\001&\333Dex\314\001\327`_\203\005\343`\270\262\006\003\006.\007tes\370@_\327is_\366@o\366 ne\374\322`\262E_buffe\367ras\207basyn\357cio.!\006sba\377seccline\375_\210 traceb\377ackcount\302\353Ad\340\002Z\000\206\210\003\243@od\363ee\346`\342\205\002erro\353rf\334`p\305`fla\037gsfor\321`\276\206\004\215@\375_\377bhidimg_index\235As\000\002\377izejoinl?oadmem\257\207\001\217\207\001\332\375!n+\000np\311\204\002ob\373jp\215\000poppt\377r_addrre\357gistw\000eleN\272\000set\237\205\004\237\207\002sS\000\366\346@rt \000psto\236\001\000ruct\236@\323\000u_pdate\227\204\002.\213\204\016\375.\227\204""\002values\377wx:OT{^}\377\200\001\330\004\007\200y\220\377\003\2201\330\010\t\330\004\377\026\220h\230a\330\004\021\317\220\021\220!\030\001\007\006\023\220\367G\2301\025\001\023\220F\230\377!\330\004\031\230\023\230E\377\240\021\330\004\013\2102\210\377X\220Q\220m\2404\240\367t\2501/\003j\240\001\240\277\030\250\027\260\001\260\037\000\007\377\200t\2103\210a\330\010\377\016\210l\230!\320\0335\367\260Q\260a\000\013\2108\220\0011";
+    PyObject *data = __Pyx_DecompressString_LZSS(cstring, 1196, 1544);
     #define __Pyx_DecompressString_UNUSED
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #else /* compression: none (1530 bytes) */
-static const char bytes[] = " at 0x object>(),.: <MemoryView of <contiguous and direct><contiguous and indirect><strided and direct or indirect><strided and direct><strided and indirect>>?Cannot assign to read-only memoryviewFallo al cargar imagen: Invalid mode, expected \047c\047 or \047fortran\047, got Invalid shape in axis NoneNote that Cython is deliberately stricter than PEP-484 and rejects subclasses of builtin types. If you need to pass subclasses then set the \047annotation_typing\047 directive to False.add_notecollections.abcdisableenablegcisenabledno default __reduce__ due to non-trivial __cinit__numpy.core.multiarray failed to importnumpy.core.umath failed to importunable to allocate array data.unable to allocate shape and strides.utils/compiled_services/image.pyxASCIIEllipsisSequenceView.MemoryView__Pyx_PyDict_NextRef__annotate____class____class_getitem____dict____func____getstate____import____main____module____name____new____pyx_checksum__pyx_state__pyx_type__pyx_unpickle_Enum__pyx_vtable____qualname____reduce____reduce_cython____reduce_ex____set_name____setstate____setstate_cython____test___is_coroutineabcallocate_bufferasarrayasyncio.coroutinesbaseccline_in_tracebackcountdatadtype_is_objectencodeenumerateerrorfilepathflagsformatfortranget_arrayhidimgindexitemsitemsizejoinloadmemviewmodenamendimnpnumpyobjpackpopptr_addrregisterreleasesetdefaultshapesizestartstepstopstructunpackupdateutils.compiled_services.imagevalueswx:OT{^}\200\001\330\004\026\220h\230a\330\004\010\210\001\200\001\330\004\026\220h\230a\330\004\021\220\023\220G\2301\330\004\021\220\023\220F\230!\330\004\031\230\023\230E\240\021\330\004\013\2102\210X\220Q\220m\2404\240t\2501\200\001\330\004\026\220j\240\001\240\030\250\027\260\001\260\021\330\004\007\200t\2103\210a\330\010\016\210l\230!\320\0335\260Q\260a\330\004\013\2108\2201";
+    #else /* compression: none (1544 bytes) */
+static const char bytes[] = " at 0x object>(),.: <MemoryView of <contiguous and direct><contiguous and indirect><strided and direct or indirect><strided and direct><strided and indirect>>?Cannot assign to read-only memoryviewFallo al cargar imagen: Invalid mode, expected \047c\047 or \047fortran\047, got Invalid shape in axis NoneNote that Cython is deliberately stricter than PEP-484 and rejects subclasses of builtin types. If you need to pass subclasses then set the \047annotation_typing\047 directive to False.add_notecollections.abcdisableenablegcisenabledno default __reduce__ due to non-trivial __cinit__numpy.core.multiarray failed to importnumpy.core.umath failed to importunable to allocate array data.unable to allocate shape and strides.utils/compiled_services/image.pyxASCIIEllipsisSequenceView.MemoryView__Pyx_PyDict_NextRef__annotate____class____class_getitem____dict____func____getstate____import____main____module____name____new____pyx_checksum__pyx_state__pyx_type__pyx_unpickle_Enum__pyx_vtable____qualname____reduce____reduce_cython____reduce_ex____set_name____setstate____setstate_cython____test___is_coroutineabcallocate_bufferasarrayasyncio.coroutinesbaseccline_in_tracebackcountdatadtype_is_objectencodeenumerateerrorfilepathflagsformatfortranget_arrayhidimgindexitemsitemsizejoinloadmemviewmodenamendimnpnumpyobjpackpopptr_addrregisterreleasesetdefaultshapesizestartstepstopstructunpackupdateutils.compiled_services.imagevalueswx:OT{^}\200\001\330\004\007\200y\220\003\2201\330\010\t\330\004\026\220h\230a\330\004\021\220\021\220!\200\001\330\004\026\220h\230a\330\004\021\220\023\220G\2301\330\004\021\220\023\220F\230!\330\004\031\230\023\230E\240\021\330\004\013\2102\210X\220Q\220m\2404\240t\2501\200\001\330\004\026\220j\240\001\240\030\250\027\260\001\260\021\330\004\007\200t\2103\210a\330\010\016\210l\230!\320\0335\260Q\260a\330\004\013\2108\2201";
     PyObject *data = NULL;
     #define __Pyx_DecompressString_UNUSED
     #define __Pyx_DecompressString_LZSS_UNUSED
@@ -23514,7 +23653,7 @@ static int __Pyx_CreateCodeObjects(__pyx_mstatetype *__pyx_mstate) {
   {
     const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 2, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 21};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_ptr_addr, __pyx_mstate->__pyx_n_u_img};
-    __pyx_mstate_global->__pyx_codeobj_tab[2] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_utils_compiled_services_image_py, __pyx_mstate->__pyx_n_u_release, __pyx_mstate->__pyx_kp_b_iso88591_ha, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[2])) goto bad;
+    __pyx_mstate_global->__pyx_codeobj_tab[2] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_utils_compiled_services_image_py, __pyx_mstate->__pyx_n_u_release, __pyx_mstate->__pyx_kp_b_iso88591_y_1_ha, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[2])) goto bad;
   }
   Py_DECREF(tuple_dedup_map);
   return 0;

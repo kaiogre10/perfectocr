@@ -5,7 +5,7 @@ import time
 from typing import Dict, Any, Optional
 from utils.word_finder import WordFinder
 from paddleocr import PaddleOCR # type: ignore
-from domain.model_factory import MatrixFactory
+from core.factory.model_factory import MatrixFactory
 
 logger = logging.getLogger(__name__)
 

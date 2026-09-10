@@ -19,5 +19,7 @@ def get_array(size_t ptr_addr):
     return np.asarray(<np.uint8_t[:h, :w]> data)
 
 def release(size_t ptr_addr):
+    if ptr_addr == 0:
+        return
     cdef Image* img = <Image*>ptr_addr
-    del img
+    destroy_image(img)

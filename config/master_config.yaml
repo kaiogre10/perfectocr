@@ -5,12 +5,11 @@ system_params:
   system_paths:
     output_paths: ["output"]
     libs_path: "bin"
-    loader: "image_loader"
-    buffer_handler: "buffer_handler"
+    components: ["buffer_handler", "image_loader", "image_container"]
     temp_path: ["safe_temp", "tmp_file.txt"]
     compile_command: ["setup.py", "build_ext", "--inplace"]
-    comp_utils_name: "utils.compiled_utils.compiled_funcs"
-    comp_utils_path: ["utils", "compiled_utils", "compiled_funcs.pyx"]
+    comp_funcs_name: "utils.compiled_utils.compiled_funcs"
+    comp_funcs_file: ["utils", "compiled_utils", "compiled_funcs.pyx"]
 
 deploy_settings:
   postgre_local: False     # Habilitar el servicio local de postgre
@@ -20,7 +19,7 @@ deploy_settings:
   update_model: False   # Modo de actualización de los valores de las matrices de Word Finder sin correr todo el sistema
   deploy_mode: True     # Modo que permite inicializar el sistema completo sin validar la configuración de manera estricta
   test_wf_model: False
-  compile_cython: True
+  compile_cython: False
 
 pipeline_secuence:
   image_preparation_stager:
@@ -52,7 +51,7 @@ pipeline_secuence:
 log_config:
   log_params:
     console_level: 'DEBUG'
-    file_level: 'INFO'
+    file_level: 'DEBUG'
     console_format: "%(asctime)s - %(filename)s:%(lineno)d - %(message)s"
     file_format: "%(filename)s:%(lineno)d - %(message)s"
     date_format: "%H:%M:%S"

@@ -120,42 +120,50 @@ class ConfigValidator:
         return self.config.get("pipeline_secuence", {})
     
     @cached_property
+    def _system_paths(self) -> Dict[str, Any]:
+        _system_paths = self.system_params.get("system_paths", {})
+        output_paths = _system_paths["output_paths"]
+        temp_path = _system_paths["temp_path"]
+        
+        _system_paths["output_paths"] = [os.path.join(self.project_root, folder) for folder in output_paths]
+        _system_paths["temp_path"] = os.path.join(self.project_root, *temp_path)
+
+        if not self.handle_memory and not self.compile_cython:
+            return _system_paths
+        
+        else:
+            _components = _system_paths["components"]
+            _libs_path = _system_paths.get("libs_path", "")
+            libs_path = os.path.join(self.project_root, _libs_path)
+            _system_paths["libs_path"] = libs_path
+
+            if self.handle_memory:
+                buffer_handler = _components[0]
+                extension = get_so()
+                buffer_path = os.path.join(self.project_root, libs_path, (buffer_handler + extension))
+                
+                if not os.path.isfile(buffer_path):
+                    self.handle_memory = False
+                    basic_exc_logger("NO EXISTEN LOS BINARIOS SE MODIFCA A FALSE EL MANEJO DE MEMORIA")
+                _system_paths["buffer_handler"] = buffer_path
+            
+            if self.compile_cython:
+                
+                _comp_funcs_file = _system_paths["comp_funcs_file"]
+                _system_paths["comp_funcs_file"] = os.path.join(self.project_root, *_comp_funcs_file)
+                
+                comp_services_path = os.path.join(self.project_root, _comp_funcs_file[0], "compiled_services")
+                _system_paths["comp_services_file"] = os.path.join(comp_services_path, "image.pyx")
+                _system_paths["comp_services_path"] = comp_services_path
+
+                _system_paths["components_path"] = [os.path.join(self.project_root, "components", folder) for folder in _components[1:]]
+                _system_paths["components"] = _components[1:]
+                
+        return _system_paths
+
+    @cached_property
     def system_paths(self) -> Dict[str, Any]:
-        system_paths = self.system_params.get("system_paths", {})
-        
-        if self.handle_memory:
-            extension = get_so()
-            
-            libs_path = system_paths.get("libs_path", "")
-            loader = system_paths.get("loader", "")
-            buffer_handler = system_paths.get("buffer_handler", "")
-            
-            loader_path = os.path.join(self.project_root, libs_path, (loader + extension))
-            buffer_path = os.path.join(self.project_root, libs_path, (buffer_handler + extension))
-            
-            if not os.path.isfile(loader_path) or not os.path.isfile(buffer_path):
-                self.handle_memory = False
-                basic_exc_logger("NO EXISTEN LOS BINARIOS SE MODIFCA A FALSE EL MANEJO DE MEMORIA")
-            
-            system_paths["loader"] = loader_path
-            system_paths["buffer_handler"] = buffer_path
-        
-        if self.compile_cython:
-            
-            _comp_utils_path = system_paths["comp_utils_path"]
-            system_paths["pxy_file_path"] = os.path.join(self.project_root, *_comp_utils_path)
-            
-            system_paths["header_path"] = os.path.join(self.project_root, "components", "image_container")
-            libs_path = system_paths.get("libs_path", "")
-            system_paths["libs_dir"] = os.path.join(self.project_root, libs_path, "image_container.lib")
-        
-        output_paths = system_paths["output_paths"]
-        temp_path = system_paths["temp_path"]
-        
-        system_paths["output_paths"] = [os.path.join(self.project_root, folder) for folder in output_paths]
-        system_paths["temp_path"] = os.path.join(self.project_root, *temp_path)
-        
-        return system_paths
+        return self._system_paths
 
     @property
     def log_config(self):

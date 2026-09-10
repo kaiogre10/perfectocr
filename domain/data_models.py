@@ -38,10 +38,11 @@ class Metadata:
 class StructuredData:
     df_table: Optional[pd.DataFrame]
     global_data: Dict[str, Any]
+    # ptr_addr: int
 
 @dataclass(slots=True)
 class WorkflowData:
-    full_img: Optional[Optional[np.ndarray[Any, np.dtype[np.uint8]]]]
+    full_img: Optional[np.ndarray[Any, np.dtype[np.uint8]]]
     metadata: Optional[Metadata]
     polygons: Optional[Dict[str, Polygons]]
     all_lines: Optional[Dict[str, AllLines]]
