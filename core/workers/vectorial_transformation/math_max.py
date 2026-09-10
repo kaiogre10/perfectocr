@@ -5,13 +5,13 @@ import numpy as np
 import time
 from itertools import permutations
 from typing import Dict, Any, List, Tuple
-from domain.abstract_worker import VectorizationAbstractWorker
+from core.contracts.abstract_worker import VectorizationAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.compiled_utils import validate_quant_chars, space_removal
 from utils.math_utils import check_full_df, decimalice_df, round_vals, decimalice
 from core.assets.assets import ONE_DEC, ZERO_DEC, ROW_TOL, SC_RANGE
 from services.output_service import save_debug_table
-from domain.class_models import SemantiClass, DataKeys, DataMathDict
+from domain.class_models import SemantiClass, DataKeys, DataMathDict, StringsModels
 
 _row_tol = ROW_TOL
 _one = ONE_DEC
@@ -933,7 +933,7 @@ class MatrixSolver(VectorizationAbstractWorker):
 
         artificial_polys: List[str] = []
         for idx in range(max_idx, new_inserts):
-            new_poly_id = f"poly_{idx:04d}"
+            new_poly_id = f"{StringsModels.POLYS_IDS.value}{idx:04d}"
             cut_polygons[new_poly_id] = {}
             artificial_polys.append(new_poly_id)
 

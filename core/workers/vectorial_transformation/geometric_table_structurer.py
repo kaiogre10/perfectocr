@@ -4,7 +4,7 @@ import time
 import numpy as np
 import pandas as pd # type: ignore
 from typing import List, Dict, Any, Tuple, cast
-from domain.abstract_worker import VectorizationAbstractWorker
+from core.contracts.abstract_worker import VectorizationAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.math_utils import alignment, euclidean_distance
 from utils.text_utils import format_cuant

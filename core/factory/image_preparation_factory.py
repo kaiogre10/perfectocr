@@ -1,7 +1,7 @@
 # core/workers/image_preparation_factory.py
 from typing import Dict, Callable, Any
-from domain.abstract_worker import ImagePrepAbstractWorker
-from domain.abstract_factory import AbstractBaseFactory
+from core.contracts.abstract_worker import ImagePrepAbstractWorker
+from core.contracts.abstract_factory import AbstractBaseFactory
 from core.workers.image_preparation.image_loader import ImageLoader
 from core.workers.image_preparation.ink_enhancer import InkCorrector
 from core.workers.image_preparation.angle_corrector import AngleCorrector

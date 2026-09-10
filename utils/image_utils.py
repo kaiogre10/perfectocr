@@ -5,8 +5,9 @@ from typing import Any, Optional, List, Dict, Tuple
 import logging
 from skimage.filters import threshold_sauvola, unsharp_mask #type: ignore
 import time
-from core.assets.assets import WHITE
+from core.assets.assets import WHITE, SMALL_NUM
 
+_small_num = SMALL_NUM
 _white = WHITE
 
 logger = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ def use_bilateral_filter(img: np.ndarray[Any, np.dtype[np.uint8]], d: int, sigma
 def use_sobel(img: np.ndarray[Any, np.dtype[np.uint8]], ksize: int):
     return np.mean(np.abs(cv2.Sobel(src=img, ddepth=cv2.CV_64F, dx=1, dy=1, ksize=ksize)), dtype=np.float32)
 
-def get_rotation_matrix(center: Tuple[int, int], angle: float):
+def get_rotation_matrix(center: Tuple[int, int], angle: np.float_):
     return cv2.getRotationMatrix2D(center, angle, 1.0)
 
 def get_image_lines(full_img: np.ndarray[Any, Any], canny_thresholds: Tuple[int, int], hough_threshold: int, min_len: int, hough_max_line_gap_px: int):
@@ -145,7 +146,7 @@ def measure_polygon_quality(cropped_img: np.ndarray[Any, np.dtype[np.uint8]]) ->
     hist = cv2.calcHist([cropped_img], [0], None, [255], [0, 255]).flatten()
     peaks = np.sum((hist[1:-1] > hist[:-2]) & (hist[1:-1] > hist[2:]), dtype=np.float32)
     prob = hist / np.sum(hist, dtype=np.float32)
-    entropy = -np.sum(prob * np.log2(prob + 1e-8))
+    entropy = -np.sum(prob * np.log2(prob + _small_num))
 
     if peaks > 1.0 and std > 30.0:
         return "otsu"  # Alto contraste, bimodal
@@ -254,6 +255,7 @@ def get_contours_values(img: np.ndarray[Any, np.dtype[np.uint8]]) -> Tuple[List[
         # for c in range(cols):
         if len(cont_coords) < 3:
             continue
+        
         area = cv2.contourArea(cont_coords)
         if area < 2:
             continue

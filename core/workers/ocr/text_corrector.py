@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Dict, Any, List
 from domain.data_formatter import DataFormatter
-from domain.abstract_worker import OCRAbstractWorker
+from core.contracts.abstract_worker import OCRAbstractWorker
 from utils.text_utils import find_umd, fast_classfier, correct_subfix
 from core.assets.assets import NUMERIC_CORRECTIONS, UMD_CORRECTIONS
 from core.assets.patterns import bad_title

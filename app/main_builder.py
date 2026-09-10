@@ -7,7 +7,7 @@ from core.factory.main_factory import MainFactory
 from services.config_service import ConfigService
 import logging
 import bitmath # type: ignore
-from domain.class_models import LogModels
+from domain.class_models import StringsModels
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +45,10 @@ class MainBuilder:
                 #if final_payload_list:
                  #   if postgre_local_service.start_postgres():
                   #      postgre_local_service.insert_payload(final_payload_list) # type: ignore
-                logger.warning(f"{LogModels.TIME_MASK.value}{time.perf_counter()-t0} total en completar el proceso de tranformación de imagenes")
+                logger.warning(f"{StringsModels.TIME_MASK.value}{time.perf_counter()-t0} total en completar el proceso de tranformación de imagenes")
                 return []
 
-            logger.warning(f"No modules completo, {LogModels.TIME_MASK.value}{time.perf_counter()-t0}")
+            logger.warning(f"No modules completo, {StringsModels.TIME_MASK.value}{time.perf_counter()-t0}")
             return []
 
         except Exception as e:
@@ -88,10 +88,10 @@ class MainBuilder:
             total_fails = len(failed_images)
             
             if total_fails == 0:
-                logger.warning(f"TODAS LAS IMÁGENES FUERON PROCESADAS CORRECTAMENTE EN {LogModels.TIME_MASK.value}{total_processing_time}, promedio: {mean_process}'s")
+                logger.warning(f"TODAS LAS IMÁGENES FUERON PROCESADAS CORRECTAMENTE EN {StringsModels.TIME_MASK.value}{total_processing_time}, promedio: {mean_process}'s")
     
             elif total_fails == total_images:
-                logger.warning(f"TODAS LAS IMÁGENES PRESENTARON FALLAS REVISAR CONFIGURACIÓN E IMÁGENES, {LogModels.TIME_MASK.value}{total_processing_time}, promedio: {mean_process}")
+                logger.warning(f"TODAS LAS IMÁGENES PRESENTARON FALLAS REVISAR CONFIGURACIÓN E IMÁGENES, {StringsModels.TIME_MASK.value}{total_processing_time}, promedio: {mean_process}")
     
             else:
                 logger.debug(f"IMAGENES EXITOSAS:\n"f"{success_images}\n"f"----------------------------")

@@ -1,8 +1,9 @@
 # core/workers/image_preparation/geometry_detector.py
 import logging
+import numpy as np
 from typing import Dict, Any, Optional, List
 from app.models_builder import ModelsBuilder
-from domain.abstract_worker import ImagePrepAbstractWorker
+from core.contracts.abstract_worker import ImagePrepAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.image_utils import binarice_img, morph_operations
 from services.output_service import save_croped_image
@@ -45,9 +46,7 @@ class GeometryDetector(ImagePrepAbstractWorker):
                 logger.error("PaddleOCR no inicializado.")
                 return False
 
-            img_obj = manager.get_full_img()
-            full_imag = img_obj.full_img if img_obj is not None else None
-            
+            full_imag = manager.get_full_img()
             if full_imag is None:
                 logger.error(f"No Hay full_img en el Formatter")
                 return False
@@ -64,47 +63,34 @@ class GeometryDetector(ImagePrepAbstractWorker):
                 # save_croped_image(image_name, imag_id, img, output_paths, worker_name)
                 
             # paddle_time = time.perf_counter()
-            polygons = engine.ocr(img=img, det=True, cls=False, rec=False)[0]
+            polygons: Optional[list[list[list[int]]]] = engine.ocr(img=img, det=True, cls=False, rec=False)[0]
             del img
             # logger.info(f"Tiempo de detección de paddle: {time.perf_counter() - paddle_time:.6f}'s")
             if not polygons:
                 logger.critical("No hay polygonos detectados")
                 return False
             
-            # total_conts = len(polygons)
-            # geometry_array = np.zeros((total_conts, 6), np.float32)
-            # geometry_array = np.zeros((total_conts, 17), np.float32)
+            pts = np.asarray(polygons, dtype=np.int16)          # (N, 4, 2)
 
-            polygons_list: List[Dict[str, Any]] = []
-            for idx, poly_pts in enumerate(polygons):
-            
-                coords: List[List[int]] = [[p[0], p[1]] for p in poly_pts]
-                xs = [c[0] for c in coords]
-                ys = [c[1] for c in coords]
-                bbox = [min(xs), min(ys), max(xs), max(ys)]
-                centroid = [sum(xs) / len(xs), sum(ys) / len(ys)]
+            xs = pts[:, :, 0]                                     # (N, 4)
+            ys = pts[:, :, 1]                                     # (N, 4)
 
-                # geometry_array[idx, [0, 1, 2, 3, 4, 5]] = bbox[0], bbox[1], bbox[2], bbox[3], centroid[0], centroid[1]
-            
-                polygons_list.append({
-                    "poly_index": idx,
-                    "polygon_coords": coords,
-                    "bounding_box": bbox,
-                    "centroid": centroid,
-                })
+            bboxes = np.stack([xs.min(axis=1), ys.min(axis=1), xs.max(axis=1), ys.max(axis=1)], axis=1, dtype=np.int_)   # (N, 4)
+            centroids = np.stack([xs.mean(axis=1, dtype=np.float_), ys.mean(axis=1, dtype=np.float_)], axis=1, dtype=np.float_) # (N, 2)
+
+            polygons_list: List[Dict[str, Any]] = [{
+                    "bounding_box": bboxes[i].tolist(),
+                    "centroid": centroids[i].tolist(),
+                }
+                for i in range(pts.shape[0])
+            ]
 
             # ind = np.arange(total_conts)
             # logger.info("POLYS ARRAY:\n"f"{np.array2string(np.column_stack([ind, geometry_array]), suppress_small=True)}")
 
             # final_polygons_list = self.validate_polygons(img, polygons_list, manager, context)
-            final_polygons: Dict[str, Dict[str, Any]] = {}
-            for new_idx, poly_data in enumerate(polygons_list):
-                poly_id = f"poly_{new_idx:04d}"
-                final_polygons[poly_id] = poly_data
 
-          #  logger.info(f"FINAL: {len(final_polygons)}")
-
-            if not manager.create_polygon_dicts(final_polygons):
+            if not manager.create_polygon_dicts(polygons_list):
                 logger.critical("GeometryDetector: Fallo al estructurar polígonos.")
                 raise
 

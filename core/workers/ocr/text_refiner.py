@@ -1,7 +1,7 @@
 # core/workers/ocr/text_refiner.py
 from typing import Dict, Any, Optional, List, Tuple
 from domain.data_formatter import DataFormatter
-from domain.abstract_worker import OCRAbstractWorker
+from core.contracts.abstract_worker import OCRAbstractWorker
 from core.workers.ocr.text_cleaner import TextCleaner
 from core.workers.ocr.fragmenter import Fragmenter
 from core.workers.ocr.text_corrector import TextCorrector

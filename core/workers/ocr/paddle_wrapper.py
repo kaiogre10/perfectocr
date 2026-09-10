@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Dict, Any, Optional, List
 from domain.data_formatter import DataFormatter
-from domain.abstract_worker import OCRAbstractWorker
+from core.contracts.abstract_worker import OCRAbstractWorker
 from app.models_builder import ModelsBuilder
 from utils.text_utils import normalice_text
 from utils.image_utils import elevate_dims
@@ -74,8 +74,8 @@ class PaddleOCRWrapper(OCRAbstractWorker):
                 return {}
             
             logger.debug(f"[PaddleWrapper] Polígonos obtenidos: {len(polygons)}")
-            polygon_ids = [pdx.polygon_id for pdx in polygons.values() if pdx.cropped_img.cropped_img is not None]
-            img_list = [p.cropped_img.cropped_img for p in polygons.values() if p.polygon_id in polygon_ids]
+            polygon_ids = [pdx.polygon_id for pdx in polygons.values() if pdx.cropped_img is not None]
+            img_list = [p.cropped_img for p in polygons.values() if p.polygon_id in polygon_ids]
             image_list = elevate_dims(img_list)
             manager.delete_cropped_images()
             

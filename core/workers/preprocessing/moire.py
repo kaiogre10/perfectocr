@@ -4,10 +4,13 @@ import numpy as np
 import logging
 from numpy.fft import fft2, fftshift, ifft2, ifftshift
 from typing import Dict, Any, Tuple
-from domain.abstract_worker import PreprocessingAbstractWorker
+from core.contracts.abstract_worker import PreprocessingAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.image_utils import use_bilateral_filter
 from services.output_service import save_croped_image
+from core.assets.assets import SMALL_NUM
+
+_small_num = SMALL_NUM
 
 logger = logging.getLogger(__name__)
 
@@ -89,14 +92,14 @@ class MoireDenoiser(PreprocessingAbstractWorker):
 
         mean_energy = np.mean(valid)
         std_energy = np.std(valid)
-        skewness = np.mean((valid - mean_energy) ** 3) / (std_energy ** 3) if std_energy > 1e-9 else 0.0
+        skewness = np.mean((valid - mean_energy) ** 3) / (std_energy ** 3) if std_energy > _small_num else 0.0
 
         # Umbral adaptativo (usa config si existe)
         mf = float(self.mean_factor or 3.0)
-        if std_energy / max(mean_energy, 1e-9) > 0.5 and skewness > 1.0:
+        if std_energy / max(mean_energy, _small_num) > 0.5 and skewness > 1.0:
             adaptive_threshold = np.percentile(valid, int(self.percentile_threshold))
             method = "Percentil"
-        elif std_energy / max(mean_energy, 1e-9) > 0.3 and skewness < 0.5:
+        elif std_energy / max(mean_energy, _small_num) > 0.3 and skewness < 0.5:
             adaptive_threshold = mean_energy * mf
             method = "Factor"
         else:

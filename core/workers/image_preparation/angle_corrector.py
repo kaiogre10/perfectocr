@@ -1,10 +1,8 @@
 # PerfectOCR/core/workers/image_preparation/angle_corrector.py
-import time
 import numpy as np
 import logging
-import math
 from typing import Dict, Any, Tuple
-from domain.abstract_worker import ImagePrepAbstractWorker
+from core.contracts.abstract_worker import ImagePrepAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.image_utils import make_contiguous, get_rotation_matrix, get_image_lines, rotate_matrix
 from services.output_service import save_croped_image
@@ -24,7 +22,6 @@ class AngleCorrector(ImagePrepAbstractWorker):
     )
     def __init__(self, config: Dict[str, Any], project_root: str):
         super().__init__(config, project_root)
-        # self.project_root = project_root
         worker_config = config.get("angle_corrector", {})
         self.min_angle_for_correction = worker_config.get('min_angle_for_correction')
         self.canny_thresholds = worker_config['canny_thresholds']
@@ -36,44 +33,40 @@ class AngleCorrector(ImagePrepAbstractWorker):
         
     def process(self, context: Dict[str, Any], manager: DataFormatter) -> bool:
         try:
-            FullImg = manager.get_full_img()
-            
-            # if FullImg is None:
-            #     logger.error("No Hay full_img en el Formatter")
-            #     return False
-            
-            logger.info(f"TYPO: {type(FullImg)}")
-            full_image = np.frombuffer(FullImg, dtype = np.uint8)
+            full_image = manager.get_full_img()
+            if full_image is None:
+                logger.error(f"No Hay full_img en el Formatter")
+                return False
             
             logger.debug("Full_img obtenida con éxito")
             
+            full_image = make_contiguous(full_image)
+
             full_img, corrected = self.correct_angle(full_image)
 
             if manager.update_full_img(corrected, full_img):
                 logger.debug(f"Imagen rotada actuallizada con éxito.")
 
-            if corrected and self.output:
-                
-                image_name = manager.workflow.metadata.image_name if manager.workflow else ""
-                worker_name = context.get("worker_name") or "angle_corrector"
-                img_id = f"full_img_{image_name}_{worker_name}"
-                save_croped_image(image_name, img_id, full_img)
+                if self.output and corrected:
+                    image_name = manager.workflow.metadata.image_name if manager.workflow else ""
+                    worker_name = context.get("worker_name") or "angle_corrector"
+                    img_id = f"full_img_{image_name}_{worker_name}"
+                    save_croped_image(image_name, img_id, full_img)
             
             return True
             
         except Exception as e:
             logger.error(f"Error angular; {e}", exc_info=True)
-        return False
+        return True
 
     def correct_angle(self, full_img: np.ndarray[Any, np.dtype[np.uint8]]) -> Tuple[np.ndarray[Any, np.dtype[np.uint8]], bool]:
         """
         Aplica deskew a la imagen si es necesario y retorna la imagen (corregida o no).
         """
-        total_time = time.perf_counter()
         try:
             
-            h =  full_img.width
-            w =  full_img.height
+            h =  full_img.shape[0]
+            w =  full_img.shape[1]
             
             center = w // 2, h // 2
             min_len = min(w // 3, self.hough_min_line_length_cap_px)
@@ -84,15 +77,16 @@ class AngleCorrector(ImagePrepAbstractWorker):
                # logger.warning(f"No se detectaron líneas para la corrección de inclinación")
                 return full_img, False
 
-            angles = [math.degrees(math.atan2(l[0][3]-l[0][1], l[0][2]-l[0][0])) for l in lines]
-            filtered_angles = [a for a in angles if self.hough_angle_filter_range_degrees[0] < a < self.hough_angle_filter_range_degrees[1]]
+            angles = np.degrees(np.arctan2(lines[:, 0, 3] - lines[:, 0, 1], lines[:, 0, 2] - lines[:, 0, 0]))
+
+            filtered_angles = angles[(angles > self.hough_angle_filter_range_degrees[0]) & (angles < self.hough_angle_filter_range_degrees[1])]
             
-            if not filtered_angles:
+            if filtered_angles.size == 0:
                # logger.warning(f"Ninguna línea detectada en el rango de ángulos para corrección")
                 return full_img, False
 
             angle = np.median(filtered_angles)
-            if abs(angle) > self.min_angle_for_correction:
+            if np.abs(angle) > self.min_angle_for_correction:
                 rotation_matrix = get_rotation_matrix(center, angle)
             
             # Calcular nuevas dimensiones
@@ -105,7 +99,7 @@ class AngleCorrector(ImagePrepAbstractWorker):
                 rotation_matrix[0, 2] += (new_w / 2) - center[0]
                 rotation_matrix[1, 2] += (new_h / 2) - center[1]
                 
-                logger.debug(f"Imagen rotada '{angle:.4f}°' ángulos en {time.perf_counter() - total_time:.6f}s")
+                logger.debug(f"Imagen rotada '{angle:.4f}°' ángulos")
                 return make_contiguous(rotate_matrix(full_img, rotation_matrix, new_w, new_h)), True
             else:             
                 logger.debug(f"Ángulo de inclinación '{angle}°' insignificante. No se aplica corrección")

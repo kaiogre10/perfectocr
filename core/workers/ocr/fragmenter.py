@@ -3,10 +3,10 @@ import dataclasses
 import logging
 from typing import Dict, Any, List, Tuple
 from domain.data_formatter import DataFormatter
-from domain.abstract_worker import OCRAbstractWorker
+from core.contracts.abstract_worker import OCRAbstractWorker
 from utils.math_utils import fragment_geometry_horizontal
 from utils.compiled_utils.compiled_funcs import space_removal, validate_text
-from domain.class_models import SemantiClass
+from domain.class_models import SemantiClass, StringsModels
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ class Fragmenter(OCRAbstractWorker):
 
             final_polygons_dict = {}
             for idx, poly_obj in enumerate(final_polygons):
-                new_id = f"poly_{idx:04d}"
+                new_id = f"{StringsModels.POLYS_IDS}{idx:04d}"
                 new_index = idx
                 final_poly_obj = dataclasses.replace(poly_obj, polygon_id=new_id, poly_index=new_index)
                 final_polygons_dict[new_id] = final_poly_obj
@@ -174,7 +174,6 @@ class Fragmenter(OCRAbstractWorker):
             
             new_poly = dataclasses.replace(
                 polygon,
-                polygon_coords = geom_part["polygon_coords"],
                 bounding_box = geom_part["bounding_box"],
                 centroid =  geom_part["centroid"],
                 ocr_text=frag_text,

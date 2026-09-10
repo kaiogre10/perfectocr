@@ -7,9 +7,11 @@ from pandas import Series
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import List, Any, Optional, Tuple, Dict, Sequence
 from utils.compiled_utils import validate_quant_chars
-from core.assets.assets import DENSITY_ENCODER, CUANT_CHAR, VECTOR_DUMMIE, VECT_REF, ZERO_DEC
+from core.assets.assets import DENSITY_ENCODER, CUANT_CHAR, VECTOR_DUMMIE, VECT_REF, ZERO_DEC, PI_DIV, SMALL_NUM
 from domain.class_models import SemantiClass, DataKeys
 
+_small_num = SMALL_NUM
+_pi_div = PI_DIV
 _zero = ZERO_DEC
 dummie_vect = VECTOR_DUMMIE
 density_encoder = DENSITY_ENCODER
@@ -44,11 +46,11 @@ def get_morphological_encode(text: str) -> float:
         elif ch in _cuant_char:
             counter += 1
 
-    return counter if counter != 0.0 else 1.2802318e-03
+    return counter if counter != 0.0 else _small_num
     # return sum(map(lambda ch: 1.0 if ch in _cuant_char else -1.0 if ch.isalpha() else 0.0, text))
 
 def encode_text(text: str, encoder: Dict[str, float]) -> float:
-    return sum([encoder.get(char, " ") for char in text])
+    return sum([encoder.get(char, " ") for char in text])   # type: ignore
     
 def text_encode(text: str, txt_size: int) -> Tuple[float, float]:
     dense = encode_text(text, density_encoder)
@@ -138,10 +140,6 @@ def soft_histogram(metrics: np.ndarray[Any, Any]) -> Tuple[int, float]:
 # def density_cluster(features: np.ndarray[Any, np.dtype[np.float32]], eps: float, min_samples: int, metric: str) -> np.ndarray[Any, np.dtype[np.int16]]:
 #     clustering = DBSCAN(eps=eps, min_samples=min_samples, metric=metric)
 #     return np.asarray(clustering.fit_predict(features), np.int16)
-
-# def h_density_cluster(h_features: np.ndarray[Any, np.dtype[np.float32]], h_min_samples: int, h_metric: str) -> np.ndarray[Any, np.dtype[np.int16]]:
-#     h_clustering = HDBSCAN(min_samples=h_min_samples, metric=h_metric)
-#     return np.asarray(h_clustering.fit_predict(h_features), np.int16)
     
 def fragment_geometry_horizontal(geometry: Any, num_fragments: int, proportions: Optional[Sequence[float]] = None) -> List[Dict[str, List[Any]]]:
     """
@@ -154,10 +152,9 @@ def fragment_geometry_horizontal(geometry: Any, num_fragments: int, proportions:
     if num_fragments <= 1:
         bbox = getattr(geometry, "bounding_box", [])
         centroid = getattr(geometry, "centroid", [])
-        coords = getattr(geometry, "polygon_coords", [])
-        if not bbox or not centroid or not coords:
+        if not bbox or not centroid:
             return []
-        return [{"bounding_box": bbox, "centroid": centroid, "polygon_coords": coords}]
+        return [{"bounding_box": bbox, "centroid": centroid}]
 
     bbox = geometry.bounding_box
     if bbox is None or len(bbox) != 4:
@@ -166,6 +163,7 @@ def fragment_geometry_horizontal(geometry: Any, num_fragments: int, proportions:
     xmin, ymin, xmax, ymax = map(float, bbox)
     width = xmax - xmin
     height = ymax - ymin
+
     if width <= 0 or height <= 0:
         return []
 
@@ -178,6 +176,7 @@ def fragment_geometry_horizontal(geometry: Any, num_fragments: int, proportions:
         total = np.sum(props, dtype=np.float32)
         if total <= 0:
             return []
+
         props = props / total
 
     geoms: List[Dict[str, List[Any]]] = []
@@ -189,13 +188,7 @@ def fragment_geometry_horizontal(geometry: Any, num_fragments: int, proportions:
 
         new_bbox = [current_x, ymin, new_xmax, ymax]
         new_centroid = [(current_x + new_xmax) / 2.0, (ymin + ymax) / 2.0]
-        new_coords = [
-                [new_bbox[0], new_bbox[1]],
-                [new_bbox[2], new_bbox[1]],
-                [new_bbox[2], new_bbox[3]],
-                [new_bbox[0], new_bbox[3]],
-            ]
-        geoms.append({"polygon_coords": new_coords, "bounding_box": new_bbox, "centroid": new_centroid})
+        geoms.append({"bounding_box": new_bbox, "centroid": new_centroid})
 
         current_x = new_xmax
 
@@ -225,13 +218,14 @@ def calculate_math_features(sorted_lines: List[Any], img_dims: Tuple[int, int])-
     line_id = np.asarray([lid.line_index for lid in sorted_lines], dtype=np.float32)
     all_bboxes = np.asarray([line.line_bbox for line in sorted_lines], dtype = np.float32)
     x, y, w, h = all_bboxes[:, 0], all_bboxes[:, 1], all_bboxes[:, 2], all_bboxes[:, 3]
+    
     width = (w - x)
     height = (h - y)
     area = (width * height)
     perimeter = 2.0 * (width + height)
     aspect_ratio = (height / width) * 100.0
-    diagonal = np.sqrt((width**2.0) + (height**2.0))
-    angle = np.degrees(np.arctan2(h, w))
+    diagonal = np.hypot(width, height)
+    angle = np.arctan2(height, width) * _pi_div
     
     global_stats = calculate_global_stats(np.column_stack([width, height, area, perimeter, aspect_ratio, diagonal, angle]))
 
@@ -282,6 +276,7 @@ def calculate_math_features(sorted_lines: List[Any], img_dims: Tuple[int, int])-
 
     # Coordenadas prev/next mediante slicing con padding NaN
     centroids = np.asarray([c.line_centroid for c in sorted_lines], np.float32)
+
     prev_bboxes = np.vstack([np.full((1, 4), np.nan, dtype=np.float32), all_bboxes[:-1]])
     next_bboxes = np.vstack([all_bboxes[1:], np.full((1, 4), np.nan, dtype=np.float32)])
     prev_centroids = np.vstack([np.full((1, 2), np.nan, dtype=np.float32), centroids[:-1]])
@@ -392,20 +387,22 @@ def calculate_math_features(sorted_lines: List[Any], img_dims: Tuple[int, int])-
 
 def calculate_textual_line_features(sorted_lines: List[Any], polygons_dict: Dict[str, Any]) -> np.ndarray[Any, np.dtype[np.float32]]:
     """Devuelve features textuales ajustadas a la lógica de vectorize.py (-1.0/1.0 y conteos correctos)."""
-    # timef = time.perf_counter()
-    rows = len(sorted_lines)
     index_to_id_map = {p.poly_index: p.polygon_id for p in polygons_dict.values()}
-    features = np.zeros((rows, 3), dtype=np.float32, order='C')
+    features = np.zeros((len(sorted_lines), 3), dtype=np.float32, order='C')
     
     for i, line_data in enumerate(sorted_lines):
-        sc_quant_count = 0.0
+        sc_quant_count = 0
         kf_total = 0
+        t_cuant = 0
         # Cuenta tokens numéricos por línea
         poly_ids_line = line_data.polygons_index
         for _, pid_idx in enumerate(poly_ids_line):
             pid_str = index_to_id_map.get(pid_idx)
+
             if pid_str and pid_str in polygons_dict:
                 poly = polygons_dict[pid_str]
+                t_cuant += poly.cuant_chars
+
                 kf: Optional[List[int]] = poly.key_field
                 if kf is None:
                     sc: List[int] = poly.semantic_clasification
@@ -413,9 +410,8 @@ def calculate_textual_line_features(sorted_lines: List[Any], polygons_dict: Dict
                 else:
                     kf_total += len(kf)
                 
-        features[i, 0] = sc_quant_count if kf_total < 1 else 0.0
-        features[i, 1] = 0.0 if kf_total > 0 else line_data.t_cuant
-        features[i, 2] = float(kf_total)
+        features[i, [0, 1]] = 0.0 if kf_total > 0 else sc_quant_count, t_cuant
+        features[i, 2] = kf_total
     
     if features.shape[0] == 0:
         return np.empty(0, dtype=np.float32)
@@ -513,12 +509,12 @@ def validate_df(df: pd.DataFrame) -> bool:
             
 def check_full_df(df: pd.DataFrame) -> bool:
     """Devuelve true si todas las celdas tienen strings válidos"""
-    return not (df.isnull().values.any() or (df == "").values.any() or df.map(lambda s: not s.isascii()).values.any())
+    return not (df.isnull().values.any() or (df == "").values.any() or df.map(lambda s: not s.isascii()).values.any())  # type: ignore
 
 def decimalice_df(df: pd.DataFrame | Series):
     """Pasa a decimal todos los Valores de un DataFrame"""
     try:
-        decimalf = df.map(lambda x: Decimal(x))
+        decimalf = df.map(lambda x: Decimal(x))  # type: ignore
     except InvalidOperation as e:
         logger.error(f"DF con datos intrusos: {e}:\n" + df.to_string(index=True), exc_info=True)
         return pd.DataFrame()

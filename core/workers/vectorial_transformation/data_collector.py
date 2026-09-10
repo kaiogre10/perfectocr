@@ -4,12 +4,12 @@ import logging
 from services.log_service import get_time_stamp, now
 import numpy as np
 from typing import Dict, Any, Tuple, List
-from utils.text_utils import format_cuant, get_rfc, get_ids, noramalize_df_text, its_similar, fast_classfier, is_quantitative
+from utils.text_utils import format_cuant, get_rfc, get_ids, noramalize_df_text, its_similar, fast_classfier
 from core.assets.patterns import umd_patterns
 from utils.math_utils import validate_df, check_full_df, decimalice_df
 from utils.compiled_utils import validate_text, space_removal
 from services.output_service import save_debug_table
-from domain.abstract_worker import VectorizationAbstractWorker
+from core.contracts.abstract_worker import VectorizationAbstractWorker
 from domain.data_formatter import DataFormatter
 from domain.class_models import SemantiClass, KeyField, DataKeys, TypeModels
 
@@ -34,7 +34,7 @@ class FinalStructurer(VectorizationAbstractWorker):
                 return False
             
             if self.output or self.stack:
-                file_name: str = manager.workflow.metadata.image_name if manager.workflow else "" # type: ignore
+                file_name = manager.workflow.metadata.image_name if manager.workflow else "" # type: ignore
                 save_debug_table(df, file_name, self.output, self.stack)
                 
             payload, buff_size = self.transform_data(df)
@@ -224,7 +224,7 @@ class FinalStructurer(VectorizationAbstractWorker):
 
         return pd.DataFrame()
     
-    def transform_data(self, df: pd.DataFrame) -> str:
+    def transform_data(self, df: pd.DataFrame) -> Tuple[str, int]:
         """Devuelve tamaño de cada fila y el df aplanado"""
         df_dims = df.shape
         last_row = df_dims[0] - 1

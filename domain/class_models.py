@@ -97,6 +97,7 @@ class TypeModels(StrEnum):
     UTF8 = "utf-8"
     UTF16_CSHARP = "utf-16-le"
     
-class LogModels(StrEnum):
+class StringsModels(StrEnum):
     NO_MANGER = "NO_MANGER"
     TIME_MASK = "Tiempo: "
+    POLYS_IDS = "poly_"

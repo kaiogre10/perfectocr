@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Dict, Any, List
 from domain.data_formatter import DataFormatter
-from domain.abstract_worker import OCRAbstractWorker
+from core.contracts.abstract_worker import OCRAbstractWorker
 from utils.text_utils import remove_special_sequences, punct_strip, separate_punt, is_acronym
 from utils.compiled_utils import validate_text, space_removal
 

@@ -298,3 +298,6 @@ COMBINATIONS = 3
 
 WHITE = [255, 255, 255]
 BLACK = [0, 0, 0]
+
+PI_DIV = (180.0 / np.pi)
+SMALL_NUM = 1e-8

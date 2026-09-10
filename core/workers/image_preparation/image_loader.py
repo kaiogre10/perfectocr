@@ -1,11 +1,11 @@
 import logging
 from typing import Dict, Any
-from domain.abstract_worker import ImagePrepAbstractWorker
+from core.contracts.abstract_worker import ImagePrepAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.image_utils import normalice_image
 from utils.file_handler import load_images
 from services.output_service import save_croped_image
-from services.storage_service import load_image
+# from services.storage_service import load_image
 
 logger = logging.getLogger(__name__)
 
@@ -23,22 +23,18 @@ class ImageLoader(ImagePrepAbstractWorker):
             
             del context["image_data"]
             
-            load_image(input_path)
-            # image_name, full_image = load_images(input_path)
-            # full_img = normalice_image(full_image)
-            # if full_img is None:
-            #     raise TypeError("NO SE PUDO NORMALIZAR LA IMAGEN")
+            # load_image(input_path)
+            image_name, full_image = load_images(input_path)
+            full_image = normalice_image(full_image)
+            if full_image is None:
+                raise TypeError("NO SE PUDO NORMALIZAR LA IMAGEN")
             
-            metadata: Dict[str, Any] = {
-                "image_name": input_path
-            }
-            
-            if manager.create_workflow(metadata):
-                # logger.debug(f"IMAGEN: '{image_name}' cargada en workflow exitosamente")
+            if manager.create_workflow(full_image, image_name):
+                logger.debug(f"IMAGEN: '{image_name}' cargada en workflow exitosamente")
                 
-                # if self.output:
-                #     worker_name = context.get("worker_name") or "loader"
-                #     save_croped_image(image_name, f"full_img_{image_name}_{worker_name}", full_img)
+                if self.output:
+                    worker_name = context.get("worker_name") or "loader"
+                    save_croped_image(image_name, f"full_img_{image_name}_{worker_name}", full_image)
                     
                 return True
         

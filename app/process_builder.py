@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from domain.data_formatter import DataFormatter
 from services.storage_service import storage_data
 from services.output_service import write_temp_log
-from domain.class_models import LogModels
+from domain.class_models import StringsModels
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +73,10 @@ class ProcessingBuilder:
             name = image_data.replace("\\", "/").split("/")[-1].split(".")[0]
             
             if self.memory:
-                plain_text = manager.payload.payload if manager.payload else LogModels.NO_MANGER.value
+                plain_text = manager.payload.payload if manager.payload else StringsModels.NO_MANGER.value
                 manager.reset_data()    # type: ignore
     
-                if LogModels.NO_MANGER.value == plain_text:
+                if StringsModels.NO_MANGER.value == plain_text:
                     logger.info("PROCESO COMPLETADO, PRUEBA MOCK SE DEVUELVEN DATOS FALSOS")
                     continue
                     

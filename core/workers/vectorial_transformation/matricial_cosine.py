@@ -3,7 +3,7 @@ import numpy as np
 import time
 import logging
 from typing import Dict, Any, List, Tuple, Optional
-from domain.abstract_worker import VectorizationAbstractWorker
+from core.contracts.abstract_worker import VectorizationAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.math_utils import get_cosine_similarity, calculate_features, cosine_similarity_matrix, mean_cosine_per_row
 from services.output_service import save_table_values, serialize_arrays

@@ -2,7 +2,7 @@
 import logging
 import time
 from typing import Optional, Dict, Any
-from domain.abstract_stager import AbstractStager
+from core.contracts.abstract_stager import AbstractStager
 from domain.data_formatter import DataFormatter
 
 logger = logging.getLogger(__name__)

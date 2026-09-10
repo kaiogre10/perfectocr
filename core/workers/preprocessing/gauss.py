@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import logging
 from typing import Dict, Any, List
-from domain.abstract_worker import PreprocessingAbstractWorker
+from core.contracts.abstract_worker import PreprocessingAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.image_utils import use_bilateral_filter
 from services.output_service import save_croped_image

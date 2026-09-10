@@ -3,10 +3,11 @@ import numpy as np
 import logging
 import dataclasses
 from typing import Dict, Any
-from domain.abstract_worker import ImagePrepAbstractWorker
+from core.contracts.abstract_worker import ImagePrepAbstractWorker
 from domain.data_formatter import DataFormatter
 from utils.image_utils import make_contiguous, validate_image
 from services.output_service import save_croped_image
+from domain.class_models import StringsModels
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +47,7 @@ class PolygonExtractor(ImagePrepAbstractWorker):
             py2 = np.minimum(img_h, y2 + self.padding)
 
             # 3. Obtener Imagen y Liberar Memoria del Manager
-            img_obj = manager.get_full_img()
-            full_img = img_obj.full_img if img_obj else None
+            full_img = manager.get_full_img()
             if full_img is None:
                 logger.error("No se pudo obtener full_img del Formatter.")
                 return False
@@ -78,7 +78,7 @@ class PolygonExtractor(ImagePrepAbstractWorker):
                     continue
 
                 # Si el polígono es válido, se crea el nuevo objeto completo
-                new_id = f"poly_{new_poly_idx:04d}"
+                new_id = f"{StringsModels.POLYS_IDS.value}{new_poly_idx:04d}"
                 
                 # Actualizar geometría con las nuevas coordenadas (con padding)
                 original_poly = polygons[old_poly_id]
@@ -114,8 +114,8 @@ class PolygonExtractor(ImagePrepAbstractWorker):
 
             if self.filtered_ouputs:
                 for poly_id, polygon in new_polygons.items():
-                    if polygon.cropped_img and polygon.cropped_img.cropped_img is not None:
-                        self.save_debug(polygon.cropped_img.cropped_img, manager, "filtered_final", poly_id)
+                    if polygon.cropped_img and polygon.cropped_img is not None:
+                        self.save_debug(polygon.cropped_img, manager, "filtered_final", poly_id)
             return True
 
         except Exception as e:

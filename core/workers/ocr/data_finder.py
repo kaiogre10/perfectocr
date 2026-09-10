@@ -3,7 +3,7 @@ import time
 from typing import Dict, Any, Optional, List, Tuple, Set
 import logging
 import numpy as np
-from domain.abstract_worker import OCRAbstractWorker
+from core.contracts.abstract_worker import OCRAbstractWorker
 from domain.data_formatter import DataFormatter
 from app.models_builder import ModelsBuilder
 from utils.text_utils import contains_quantitative, get_rfc
