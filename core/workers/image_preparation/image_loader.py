@@ -5,7 +5,7 @@ from domain.data_formatter import DataFormatter
 from utils.image_utils import normalice_image
 from utils.file_handler import load_images
 from services.output_service import save_croped_image
-from utils.compiled_services.image import load
+# from utils.compiled_services.image import load
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class ImageLoader(ImagePrepAbstractWorker):
         try:
             input_path = context.get("image_data", "")
             logger.info(f"IMAGEN: '{input_path}'")
-            ptr = load(input_path)
+            # ptr = load(input_path)
             del context["image_data"]
             
             # load_image(input_path)

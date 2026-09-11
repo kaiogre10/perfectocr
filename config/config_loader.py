@@ -1,17 +1,18 @@
 # services/config_loader.py
 import os
-from typing import List
 from domain.config_models import SystemSetUp, ConfigParams
 from utils.file_handler import load_yaml, load_jsoncomment
 
-def load_config(default_config_path: List[str]):
+def load_config(PROJECT_ROOT: str):
     """
     Carga archivos de configuración, asegura agnosismo si cambia el formato de archivo de entrada.
     return ['system_set_up', 'config_params']
     """
-    config_params_file = os.path.join(*default_config_path, ("config_params" + ".yaml"))
-    system_config_file = os.path.join(*default_config_path, ("master_config" + ".yaml"))
-    user_config_file = os.path.join(*default_config_path, ("user_config" + ".jsonc")) # Con comentarios temporalmente para flexibilidad
+    file_dir = os.path.dirname(os.path.abspath(__file__))
+    current_dir = os.path.join(PROJECT_ROOT, os.path.relpath(file_dir, PROJECT_ROOT))
+    config_params_file = os.path.join(current_dir, ("config_params" + ".yaml"))
+    system_config_file = os.path.join(current_dir, ("master_config" + ".yaml"))
+    user_config_file = os.path.join(current_dir, ("user_config" + ".jsonc")) # Con comentarios temporalmente para flexibilidad
 
     config_json = load_jsoncomment(user_config_file, 'r')
     if not isinstance(config_json, dict):

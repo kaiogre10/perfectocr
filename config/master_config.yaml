@@ -5,15 +5,16 @@ system_params:
   system_paths:
     output_paths: ["output"]
     libs_path: "bin"
-    components: ["buffer_handler", "image_loader", "image_container"]
+    components: ["buffer_handler", "image_loader", "image_container", "file_handler", "payload_container", "c_utils"]
     temp_path: ["safe_temp", "tmp_file.txt"]
     compile_command: ["setup.py", "build_ext", "--inplace"]
-    comp_funcs_name: "utils.compiled_utils.compiled_funcs"
     comp_funcs_file: ["utils", "compiled_utils", "compiled_funcs.pyx"]
+    opencv_path: ["opencv_dep", "install"]
+    install_dirs: ["include", "lib"]
 
 deploy_settings:
   postgre_local: False     # Habilitar el servicio local de postgre
-  handle_memory: True   # Interruptor para gestionar la memoria dinámica, exclusivamente para deploy
+  handle_memory: False   # Interruptor para gestionar la memoria dinámica, exclusivamente para deploy
   test_config: False   # Modo evalua las configuraciones según modo deploy haciendo early exit el sistema
   clean_mode: False     # Modo de limpieza que solo ejecuta el módulo de limpieza de cache y datos basura
   update_model: False   # Modo de actualización de los valores de las matrices de Word Finder sin correr todo el sistema
@@ -50,8 +51,8 @@ pipeline_secuence:
 
 log_config:
   log_params:
-    console_level: 'DEBUG'
-    file_level: 'DEBUG'
+    console_level: 'WARNING'
+    file_level: 'INFO'
     console_format: "%(asctime)s - %(filename)s:%(lineno)d - %(message)s"
     file_format: "%(filename)s:%(lineno)d - %(message)s"
     date_format: "%H:%M:%S"

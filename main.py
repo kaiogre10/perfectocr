@@ -5,25 +5,23 @@ import sys
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-DEFAULT_CONFIG_FILE = [PROJECT_ROOT, "config"]
-
+    
 from services import log_service
-from services.config_service import ConfigService
+from config.config_api import ConfigAPI
 from services import system_service
 
-config_service = ConfigService(DEFAULT_CONFIG_FILE)
+config_service = ConfigAPI(PROJECT_ROOT)
 if config_service.test_config:
     log_service.log_simple("TESTING CONFIG FINALIZANDO")
     sys.exit()
 
 system_paths = config_service.system_paths
+system_service.set_system_config(PROJECT_ROOT, system_paths)
 if config_service.compile_cython:
     from config import setup
     setup.build_extensions(PROJECT_ROOT, system_paths)
     sys.exit()
     
-system_service.set_system_config(PROJECT_ROOT, system_paths)
 if config_service.clean_project:
     log_service.log_simple("CLEAN UP ACTIVADO, FINALIZANDO")
     system_service.cleanup_project()

@@ -4,7 +4,7 @@ from typing import Optional, List, Tuple
 from app.process_builder import ProcessingBuilder
 from app.models_builder import ModelsBuilder
 from core.factory.main_factory import MainFactory
-from services.config_service import ConfigService
+from config.config_api import ConfigAPI
 import logging
 import bitmath # type: ignore
 from domain.class_models import StringsModels
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class MainBuilder:
     __slots__ = ("project_root", "config_service")
-    def __init__(self, config_service: ConfigService, project_root: str):
+    def __init__(self, config_service: ConfigAPI, project_root: str):
         self.project_root = project_root
         self.config_service = config_service
 

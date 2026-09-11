@@ -20,7 +20,7 @@ _full_ocr = FULL_OCR
 _vect_min = VECT_MIN     # Es parte de los min_workers pero por motivos de deploy lo mantendremos fuera
 _min_workers = MIN_WORKERS
 
-class ConfigValidator:
+class ConfigBuilder:
     """Valida de los parametros de configuración"""
     def __init__(self, project_root: str, config: Dict[str, Any]):
         self.config = config
@@ -134,8 +134,7 @@ class ConfigValidator:
         else:
             _components = _system_paths["components"]
             _libs_path = _system_paths.get("libs_path", "")
-            libs_path = os.path.join(self.project_root, _libs_path)
-            _system_paths["libs_path"] = libs_path
+            libs_path = os.path.join(self.project_root, _libs_path) # /bin
 
             if self.handle_memory:
                 buffer_handler = _components[0]
@@ -148,15 +147,29 @@ class ConfigValidator:
                 _system_paths["buffer_handler"] = buffer_path
             
             if self.compile_cython:
+                components_dir = os.path.join(self.project_root, "components")  # /components
+                
+                _install_dirs = _system_paths["install_dirs"]   # include, lib
+                _opencv_path = _system_paths["opencv_path"]
+                
+                components_paths = [os.path.join(components_dir, folder) for folder in _components[1:3]]
+                components_paths.append(os.path.join(components_dir, *_opencv_path, _install_dirs[0], "opencv4"))
+                _system_paths["components_paths"] = components_paths
+                
+                _system_paths["libs_path"] = [libs_path, os.path.join(components_dir, *_opencv_path, _install_dirs[1])]
                 
                 _comp_funcs_file = _system_paths["comp_funcs_file"]
+
+                _system_paths["comp_funcs_name"] = ".".join(_comp_funcs_file)[:-4]
                 _system_paths["comp_funcs_file"] = os.path.join(self.project_root, *_comp_funcs_file)
                 
                 comp_services_path = os.path.join(self.project_root, _comp_funcs_file[0], "compiled_services")
+
+                # log_simple(f"PATH: {comp_services_path}: IS DIR: {os.path.isdir(comp_services_path)}")
                 _system_paths["comp_services_file"] = os.path.join(comp_services_path, "image.pyx")
                 _system_paths["comp_services_path"] = comp_services_path
-
-                _system_paths["components_path"] = [os.path.join(self.project_root, "components", folder) for folder in _components[1:]]
+                
+                
                 _system_paths["components"] = _components[1:]
                 
         return _system_paths

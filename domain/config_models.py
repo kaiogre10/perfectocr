@@ -11,8 +11,9 @@ class SystemPaths(ConfigWithNumpy):
     components: List[str]
     temp_path: List[str]
     compile_command: List[str]
-    comp_funcs_name: str
     comp_funcs_file: List[str]
+    opencv_path: List[str]
+    install_dirs: List[str]
     
 class SystemParams(ConfigWithNumpy):
     system_paths: SystemPaths
